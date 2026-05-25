@@ -20,9 +20,9 @@ inventar-media/
 ./start.sh [dev|ngrok|prod]
 ```
 
-- `dev` — local only, dev database
-- `ngrok` — expose via ngrok, dev database
-- `prod` — local frontend + backend, production database (confirmation required)
+- `dev`: local only, dev database
+- `ngrok`: expose via ngrok, dev database
+- `prod`: local frontend + backend, production database (confirmation required)
 
 ---
 
@@ -36,7 +36,7 @@ pip install -r requirements.txt
 uvicorn main:app --reload
 ```
 
-API at `http://localhost:8000` — docs at `http://localhost:8000/docs`.
+API at `http://localhost:8000`, docs at `http://localhost:8000/docs`.
 
 ---
 
@@ -54,7 +54,7 @@ Vite proxies `/api/*` to the FastAPI backend automatically.
 
 ## Auth
 
-Supabase Auth (Google OAuth). Roles are managed via the `user_roles` table in the database — not in the UI.
+Supabase Auth (Google OAuth). Roles are managed via the `user_roles` table in the database, not in the UI.
 
 To give someone a role, run in the Supabase SQL editor:
 
