@@ -1,3 +1,6 @@
+from enum import Enum
+
+
 """
 Timeout in seconds for external API requests (Google Books, AniList, OpenLibrary, ...).
 """
@@ -32,3 +35,61 @@ ADMIN_ROLE = "admin"
 ALL-SEEING Role string
 """
 ALL_SEEING_ROLE = "all_seeing"
+
+"""
+Type ISBN13 String
+"""
+TYPE_ISBN13 = "isbn13"
+
+"""
+Type ISBN10 String
+"""
+TYPE_ISBN10 = "isbn10"
+
+"""
+Type EAN String
+"""
+TYPE_EAN = "ean"
+
+"""
+UNKNOWN type
+"""
+TYPE_UNKNOWN = "unknown"
+
+"""
+Manga Tag
+"""
+TAG_MANGA = "Manga"
+
+"""
+Anime Tag
+"""
+TAG_ANIME = "Anime"
+
+"""
+Light Novel Tag
+"""
+TAG_LIGHT_NOVEL = "Light Novel"
+
+"""
+Art Book Tag
+"""
+TAG_ART_BOOK = "ART_BOOK"
+
+"""
+Novel Tag
+"""
+TAG_NOVEL = "Novel"
+
+"""
+Sonstiges Tag
+"""
+TAG_SONSTIGES = "Sonstiges"
+
+"""
+From API values
+"""
+class From_Api(Enum):
+    GOOGLE_BOOKS = "google_books"
+    OPEN_LIBRARY = "openlibrary"
+    NO_API = "none"

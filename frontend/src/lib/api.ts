@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import { Title } from "../types";
+import { Item, Title } from "../types";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "/api";
 
@@ -79,6 +79,36 @@ export async function fetchTitles(): Promise<Title[]> {
     externalId: t.external_id ?? null,
     createdAt: t.created_at,
     coverImageUrl: null, // resolved from items later
+  }));
+}
+
+
+// ---------------------------------------------------------------------------
+// Items
+// 
+ 
+export async function fetchItems(titleId: string): Promise<Item[]> {
+  const res = await fetch(`${BASE_URL}/titles/${titleId}/items`, {
+    headers: await headers(),
+  });
+  const data = await handleResponse(res);
+  return data.map((i: any) => ({
+    id: i.id,
+    titleId: i.title_id,
+    name: i.name,
+    volumeNumber: i.volume_number ?? null,
+    language: i.language ?? null,
+    edition: i.edition ?? null,
+    coverImageUrl: i.cover_image_url ?? null,
+    externalId: i.external_id ?? null,
+    dateAdded: i.date_added,
+    // type-specific
+    isbn10: i.isbn_10 ?? null,
+    isbn13: i.isbn_13 ?? null,
+    publisher: i.publisher ?? null,
+    author: i.author ?? null,
+    publishDate: i.publish_date ?? null,
+    ean: i.ean ?? null,
   }));
 }
  

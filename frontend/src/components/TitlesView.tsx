@@ -3,6 +3,7 @@ import { Search, Plus } from "lucide-react";
 import { fetchTags, fetchTitles } from "../lib/api";
 import { Tag, Title, UserContext } from "../types";
 import { TAG_COLORS, TAG_COLOR_FALLBACK } from "../lib/constants";
+import ItemsView from "./ItemsView";
 
 interface Props {
   userCtx: UserContext;
@@ -15,6 +16,8 @@ export default function TitlesView({ userCtx }: Props) {
   const [activeTags, setActiveTags] = useState<string[]>([]);
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState<string | null>(null);
+
+  const [selectedTitle, setSelectedTitle] = useState<Title | null>(null);
 
   // ---- Data loading ---------------------------------------------------
   useEffect(() => {
@@ -62,6 +65,16 @@ export default function TitlesView({ userCtx }: Props) {
       ? { backgroundColor: color }
       : { backgroundColor: `${color}22`, color };
   };
+
+  if (selectedTitle) {
+    return (
+      <ItemsView
+        title={selectedTitle}
+        userCtx={userCtx}
+        onBack={() => setSelectedTitle(null)}
+      />
+    );
+  }
 
   // ---- Render ---------------------------------------------------------
   return (
@@ -123,11 +136,13 @@ export default function TitlesView({ userCtx }: Props) {
             </div>
           )}
           {filtered.map(title => (
-            <TitleCard
+            <button
               key={title.id}
-              title={title}
-              tagColor={tagColor(title.tag.name)}
-            />
+              className="w-full text-left"
+              onClick={() => setSelectedTitle(title)}
+            >
+              <TitleCard title={title} tagColor={tagColor(title.tag.name)} />
+            </button>
           ))}
         </div>
       )}

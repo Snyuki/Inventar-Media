@@ -46,7 +46,15 @@ export interface Item {
   coverImageUrl: string | null;
   externalId: string | null;
   dateAdded: string;
+  // type-specific fields (null if not applicable)
+  isbn10: string | null;
+  isbn13: string | null;
+  publisher: string | null;
+  author: string | null;
+  publishDate: string | null;
+  ean: string | null;
 }
+ 
 
 // Detail types (type-specific fields)
 export interface ItemDetailManga {
@@ -55,17 +63,4 @@ export interface ItemDetailManga {
   publisher: string | null;
   author: string | null;
   publishDate: string | null;
-}
-
-export type ItemDetailLightNovel = ItemDetailManga;
-export type ItemDetailNovel      = ItemDetailManga;
-export type ItemDetailArtBook    = ItemDetailManga;
-
-export interface ItemDetailAnime {
-  ean: string | null;
-}
-
-export interface ItemDetailSonstiges {
-  isbn10: string | null;
-  isbn13: string | null;
 }

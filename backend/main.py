@@ -2,7 +2,9 @@ from contextlib import asynccontextmanager
 from typing import Optional
 import os
 import uuid
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
+import re
+import httpx
  
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -131,7 +133,6 @@ items_sonstiges_table = sqlalchemy.Table(
     sqlalchemy.Column("isbn_13",  sqlalchemy.String, nullable=True),
 )
  
-detail_tables: dict[str, sqlalchemy.Table] = {}
 TAG_TO_DETAIL_TABLE: dict[str, sqlalchemy.Table] = {
     "Manga":        items_manga_table,
     "Light Novel":  items_light_novel_table,
@@ -146,8 +147,6 @@ engine = sqlalchemy.create_engine(sync_url)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print(f"DEBUG SUPABASE_URL: {SUPABASE_URL}")
-    print(f"DEBUG JWKS_URL: {JWKS_URL}")
     await database.connect()
     yield
     await database.disconnect()
@@ -206,7 +205,7 @@ async def resolve_role(user_id: str) -> str:
     """
     row = await database.fetch_one(
         user_roles_table.select().where(
-            user_roles_table.c.id == user_id
+            user_roles_table.c.user_id == user_id
         )
     )
     if row:
@@ -333,23 +332,6 @@ class TitleUpdate(BaseModel):
 # Pydantic models — Items
 # ---------------------------------------------------------------------------
  
-class ItemDetailBookIn(BaseModel):
-    isbn_10:      Optional[str] = None
-    isbn_13:      Optional[str] = None
-    publisher:    Optional[str] = None
-    author:       Optional[str] = None
-    publish_date: Optional[str] = None
- 
- 
-class ItemDetailAnimeIn(BaseModel):
-    ean: Optional[str] = None
- 
- 
-class ItemDetailSonstigesIn(BaseModel):
-    isbn_10: Optional[str] = None
-    isbn_13: Optional[str] = None
- 
- 
 class ItemIn(BaseModel):
     name:            str
     volume_number:   Optional[str] = None
@@ -364,6 +346,15 @@ class ItemIn(BaseModel):
     author:          Optional[str] = None
     publish_date:    Optional[str] = None
     ean:             Optional[str] = None
+
+    @field_validator("cover_image_url")
+    @classmethod
+    def validate_cover_url(cls, v):
+        if v is None:
+            return v
+        if not re.match(r"^https?://", v):
+            raise ValueError("cover_image_url must be a valid http/https URL")
+        return v
  
  
 class ItemOut(BaseModel):
@@ -384,6 +375,25 @@ class ItemOut(BaseModel):
     publish_date:    Optional[str] = None
     ean:             Optional[str] = None
  
+
+# ---------------------------------------------------------------------------
+# Pydantic models — Lookup
+# ---------------------------------------------------------------------------
+ 
+class LookupResult(BaseModel):
+    code: str                        # the raw barcode value
+    code_type: str                   # "isbn13", "isbn10", "ean", "unknown"
+    suggested_tag: Optional[str]     # "Manga", "Anime", None, etc.
+    name:         Optional[str] = None
+    author:       Optional[str] = None
+    publisher:    Optional[str] = None
+    publish_date: Optional[str] = None
+    cover_image_url: Optional[str] = None
+    isbn_10:      Optional[str] = None
+    isbn_13:      Optional[str] = None
+    ean:          Optional[str] = None
+    from_api:     Optional[str] = None
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -439,6 +449,100 @@ async def fetch_item_with_detail(item_id: str, tag_name: str) -> ItemOut:
         ean=detail_row["ean"] if detail_row and "ean" in detail_row.keys() else None,
     )
 
+
+def detect_code_type(code: str) -> str:
+    """Detects whether a barcode is ISBN-13, ISBN-10, EAN, or unknown."""
+    digits_only = code.replace("-", "").replace(" ", "")
+    if len(digits_only) == 13 and digits_only.startswith(("978", "979")):
+        return constants.TYPE_ISBN13
+    if len(digits_only) == 10:
+        return constants.TYPE_ISBN10
+    if len(digits_only) == 13 or len(digits_only) == 8:
+        return constants.TYPE_EAN
+    return constants.TYPE_UNKNOWN
+
+
+def suggested_tag_from_code_type(code_type: str) -> Optional[str]:
+    """Returns a suggested tag name based on the code type."""
+    if code_type in (constants.TYPE_ISBN13, constants.TYPE_ISBN10):
+        return constants.TAG_MANGA      # Default for now when ISBN is found
+    if code_type == constants.TYPE_EAN:
+        return constants.TAG_ANIME
+    return None
+
+
+async def lookup_google_books(code: str, client: httpx.AsyncClient) -> Optional[dict]:
+    """Looks up a book by ISBN via Google Books API."""
+    api_key = os.getenv("GOOGLE_BOOKS_API_KEY", "")
+    params = {"q": f"isbn:{code}", "maxResults": 1}
+    if api_key:
+        params["key"] = api_key
+    try:
+        res = await client.get(
+            constants.GOOGLE_BOOKS_BASE_URL,
+            params=params,
+            timeout=constants.EXTERNAL_API_TIMEOUT_SECONDS,
+        )
+        data = res.json()
+        print(f"Google Books response: {data}")
+        if data.get("totalItems", 0) == 0:
+            return None
+        volume = data["items"][0]["volumeInfo"]
+        isbn_10 = None
+        isbn_13 = None
+        for identifier in volume.get("industryIdentifiers", []):
+            if identifier["type"] == "ISBN_10":
+                isbn_10 = identifier["identifier"]
+            if identifier["type"] == "ISBN_13":
+                isbn_13 = identifier["identifier"]
+        return {
+            "name":            volume.get("title"),
+            "author":          ", ".join(volume.get("authors", [])) or None,
+            "publisher":       volume.get("publisher"),
+            "publish_date":    volume.get("publishedDate"),
+            "cover_image_url": volume.get("imageLinks", {}).get("thumbnail"),
+            "isbn_10":         isbn_10,
+            "isbn_13":         isbn_13,
+            "from_api":        constants.From_Api.GOOGLE_BOOKS.value,
+        }
+    except Exception as e:
+        print(f"Google Books lookup error: {e}")
+        return None
+
+
+async def lookup_openlibrary(code: str, client: httpx.AsyncClient) -> Optional[dict]:
+    """Looks up a book by ISBN via OpenLibrary API (fallback)."""
+    try:
+        res = await client.get(
+            constants.OPEN_LIBRARY_BASE_URL,
+            params={"bibkeys": f"ISBN:{code}", "format": "json", "jscmd": "data"},
+            timeout=constants.EXTERNAL_API_TIMEOUT_SECONDS,
+        )
+        text = res.text.strip()
+        if not text:
+            return None
+        data = res.json()
+        key = f"ISBN:{code}"
+        if key not in data:
+            return None
+        book = data[key]
+        authors = [a["name"] for a in book.get("authors", [])]
+        publishers = [p["name"] for p in book.get("publishers", [])]
+        cover = book.get("cover", {}).get("large") or book.get("cover", {}).get("medium")
+        return {
+            "name":            book.get("title"),
+            "author":          ", ".join(authors) or None,
+            "publisher":       ", ".join(publishers) or None,
+            "publish_date":    book.get("publish_date"),
+            "cover_image_url": cover,
+            "isbn_10":         None,
+            "isbn_13":         code if len(code) == 13 else None,
+            "from_api":        constants.From_Api.OPEN_LIBRARY.value,
+        }
+    except Exception as e:
+        print(f"OpenLibrary lookup error: {e}")
+        return None
+
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
@@ -482,10 +586,6 @@ async def list_tags(_: UserContext = Depends(get_optional_user)):
     return [{"id": str(r["id"]), "name": r["name"]} for r in rows]
 
 
-# ---------------------------------------------------------------------------
-# Titles endpoints
-# ---------------------------------------------------------------------------
- 
 @app.get("/api/titles", response_model=list[TitleOut])
 async def list_titles(user: UserContext = Depends(get_optional_user)):
     """
@@ -579,7 +679,6 @@ async def create_title(body: TitleIn, user: UserContext = Depends(get_current_us
         )
     )
  
-    # Fetch the created row to return consistent shape
     return await get_title(tid, user)
  
  
@@ -607,7 +706,7 @@ async def update_title(
         if not tag_row:
             raise HTTPException(status_code=404, detail="Tag not found")
  
-    updates = {k: v for k, v in body.model_dump().items() if v is not None}
+    updates = {k: v for k, v in body.model_dump(exclude_unset=True).items()}
     if updates:
         await database.execute(
             titles_table.update()
@@ -627,9 +726,11 @@ async def delete_title(
     Deletes a title and all its items (cascade handled by DB).
     Admin only.
     """
-    existing = await database.fetch_one(
-        titles_table.select().where(titles_table.c.id == title_id)
-    )
+    existing = await database.fetch_one("""
+        SELECT id FROM titles
+        WHERE id = :title_id
+        AND (:see_explicit = TRUE OR is_explicit = FALSE)
+    """, values={"title_id": title_id, "see_explicit": user.can_see_explicit})
     if not existing:
         raise HTTPException(status_code=404, detail="Title not found")
  
@@ -836,3 +937,55 @@ async def list_languages(
             ORDER BY language ASC
         """)
     return [r["language"] for r in rows]
+
+ 
+@app.get("/api/lookup", response_model=LookupResult)
+async def lookup_barcode(
+    code: str,
+    _: UserContext = Depends(get_optional_user),
+):
+    """
+    Looks up a barcode/ISBN and returns prefill data for the item form.
+    - ISBN-13 / ISBN-10 → tries Google Books, falls back to OpenLibrary
+    - EAN → returns raw EAN with suggested tag "Anime", no API lookup
+    - Unknown → returns code as-is with no prefill
+ 
+    Guests can use this endpoint since it reads no user data.
+    """
+    code = code.strip()
+    code_type = detect_code_type(code)
+    suggested_tag = suggested_tag_from_code_type(code_type)
+ 
+    # Non-book code — return immediately with no API lookup
+    if code_type not in (constants.TYPE_ISBN13, constants.TYPE_ISBN10):
+        return LookupResult(
+            code=code,
+            code_type=code_type,
+            suggested_tag=suggested_tag,
+            ean=code if code_type == constants.TYPE_EAN else None,
+            from_api=constants.From_Api.NO_API.value,
+        )
+ 
+    # Book code — try Google Books first, then OpenLibrary
+    async with httpx.AsyncClient() as client:
+        result = await lookup_google_books(code, client)
+        if not result:
+            result = await lookup_openlibrary(code, client)
+ 
+    if not result:
+        # No result from any API — return code type info only
+        return LookupResult(
+            code=code,
+            code_type=code_type,
+            suggested_tag=suggested_tag,
+            isbn_10=code if code_type == constants.TYPE_ISBN10 else None,
+            isbn_13=code if code_type == constants.TYPE_ISBN13 else None,
+            from_api=constants.From_Api.NO_API.value,
+        )
+ 
+    return LookupResult(
+        code=code,
+        code_type=code_type,
+        suggested_tag=suggested_tag,
+        **result,
+    )
