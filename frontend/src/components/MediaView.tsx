@@ -1,0 +1,56 @@
+import { LogOut } from "lucide-react";
+import { UserContext } from "../types";
+
+interface Props {
+  userCtx: UserContext;
+  onLogout?: () => void;
+}
+
+export default function MediaView({ userCtx, onLogout }: Props) {
+  return (
+    <div className="min-h-screen flex flex-col bg-gray-50">
+
+      {/* Navbar */}
+      <nav className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <h2 className="text-gray-900 font-semibold">Inventar Media</h2>
+            <div className="flex items-center gap-3">
+              {userCtx.email && (
+                <span className="hidden sm:block text-sm text-gray-500">
+                  {userCtx.email}
+                </span>
+              )}
+              {userCtx.role === "guest" && (
+                <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-lg">
+                  Guest
+                </span>
+              )}
+              {onLogout && (
+                <button
+                  onClick={onLogout}
+                  className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  title="Logout"
+                >
+                  <LogOut className="w-5 h-5" />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      {/* Main — placeholder until MediaView is built */}
+      <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
+        Titles will appear here.
+      </div>
+
+      {/* Footer */}
+      <footer className="text-center py-3 text-xs text-gray-400 border-t border-gray-100 bg-white">
+        <span>© {new Date().getFullYear()} Snyuki</span>
+        <span className="mx-2">·</span>
+        <span>v{__APP_VERSION__}</span>
+      </footer>
+    </div>
+  );
+}
