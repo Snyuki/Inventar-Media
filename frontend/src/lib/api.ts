@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { Title } from "../types";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "/api";
 
@@ -59,3 +60,25 @@ export async function fetchTags(): Promise<Tag[]> {
   });
   return handleResponse(res);
 }
+
+
+// ---------------------------------------------------------------------------
+// Titles
+// ---------------------------------------------------------------------------
+
+export async function fetchTitles(): Promise<Title[]> {
+  const res = await fetch(`${BASE_URL}/titles`, {
+    headers: await headers(),
+  });
+  const data = await handleResponse(res);
+  return data.map((t: any) => ({
+    id: t.id,
+    name: t.name,
+    tag: { id: t.tag.id, name: t.tag.name },
+    isExplicit: t.is_explicit,
+    externalId: t.external_id ?? null,
+    createdAt: t.created_at,
+    coverImageUrl: null, // resolved from items later
+  }));
+}
+ 

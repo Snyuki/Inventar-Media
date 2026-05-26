@@ -1,5 +1,6 @@
 import { LogOut } from "lucide-react";
 import { UserContext } from "../types";
+import TitlesView from "./TitlesView";
 
 interface Props {
   userCtx: UserContext;
@@ -40,9 +41,9 @@ export default function MediaView({ userCtx, onLogout }: Props) {
         </div>
       </nav>
 
-      {/* Main — placeholder until MediaView is built */}
-      <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
-        Titles will appear here.
+      {/* Main */}
+      <div className="flex-1 flex justify-center p-4 sm:p-8">
+        <TitlesView userCtx={userCtx} />
       </div>
 
       {/* Footer */}
