@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Session, AuthChangeEvent } from "@supabase/supabase-js";
+import { Session } from "@supabase/supabase-js";
 import { supabase } from "./lib/supabase";
 import { checkAuthRole } from "./lib/api";
 import { UserContext } from "./types";
