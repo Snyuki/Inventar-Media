@@ -6,7 +6,6 @@ import {
   fetchTitles,
   createTitle,
   createItem,
-  lookupBarcode,
   fetchLanguageSuggestions,
 } from "../lib/api";
 import { Tag, Title, LookupResult } from "../types";
