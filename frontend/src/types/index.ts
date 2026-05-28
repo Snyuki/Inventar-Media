@@ -54,13 +54,23 @@ export interface Item {
   publishDate: string | null;
   ean: string | null;
 }
- 
 
-// Detail types (type-specific fields)
-export interface ItemDetailManga {
-  isbn10: string | null;
-  isbn13: string | null;
-  publisher: string | null;
+// ---------------------------------------------------------------------------
+// Lookup
+// ---------------------------------------------------------------------------
+ 
+export interface LookupResult {
+  code: string;
+  code_type: string;
+  suggested_tag: string | null;
+  name: string | null;
   author: string | null;
-  publishDate: string | null;
+  publisher: string | null;
+  publish_date: string | null;
+  cover_image_url: string | null;
+  isbn_10: string | null;
+  isbn_13: string | null;
+  ean: string | null;
+  from_api: string | null;
 }
+ 

@@ -4,6 +4,7 @@ import * as Accordion from "@radix-ui/react-accordion";
 import { fetchItems } from "../lib/api";
 import { Item, Title, UserContext } from "../types";
 import { TAG_COLORS, TAG_COLOR_FALLBACK } from "../lib/constants";
+import AddItemDialog from "./AddItemDialog";
 
 interface Props {
   title: Title;
@@ -156,6 +157,8 @@ export default function ItemsView({ title, userCtx, onBack }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState<string | null>(null);
 
+  const [addOpen, setAddOpen] = useState(false);
+
   const tagColor = TAG_COLORS[title.tag.name] ?? TAG_COLOR_FALLBACK;
 
   useEffect(() => {
@@ -195,7 +198,7 @@ export default function ItemsView({ title, userCtx, onBack }: Props) {
         {userCtx.role === "admin" && (
           <button
             className="ml-auto flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex-shrink-0"
-            onClick={() => {/* add dialog — next step */}}
+            onClick={() => setAddOpen(true)}
           >
             <Plus className="w-4 h-4" /> Add
           </button>
@@ -240,6 +243,13 @@ export default function ItemsView({ title, userCtx, onBack }: Props) {
           </Accordion.Root>
         </>
       )}
+      <AddItemDialog
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        onSuccess={() => { setAddOpen(false); fetchItems(title.id).then(setItems); }}
+        tags={[title.tag]}  // only the title's own tag
+        lockedTitle={title}
+      />
     </div>
   );
 }

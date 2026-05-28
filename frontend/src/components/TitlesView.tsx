@@ -4,6 +4,7 @@ import { fetchTags, fetchTitles } from "../lib/api";
 import { Tag, Title, UserContext } from "../types";
 import { TAG_COLORS, TAG_COLOR_FALLBACK } from "../lib/constants";
 import ItemsView from "./ItemsView";
+import AddItemDialog from "./AddItemDialog";
 
 interface Props {
   userCtx: UserContext;
@@ -18,6 +19,8 @@ export default function TitlesView({ userCtx }: Props) {
   const [error, setError]         = useState<string | null>(null);
 
   const [selectedTitle, setSelectedTitle] = useState<Title | null>(null);
+
+  const [addOpen, setAddOpen]   = useState(false);
 
   // ---- Data loading ---------------------------------------------------
   useEffect(() => {
@@ -86,7 +89,7 @@ export default function TitlesView({ userCtx }: Props) {
         {userCtx.role === "admin" && (
           <button
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-            onClick={() => {/* add dialog — next step */}}
+            onClick={() => setAddOpen(true)}
           >
             <Plus className="w-4 h-4" /> Add Title
           </button>
@@ -146,6 +149,12 @@ export default function TitlesView({ userCtx }: Props) {
           ))}
         </div>
       )}
+      <AddItemDialog
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        onSuccess={() => { setAddOpen(false); /* reload titles */ fetchTitles().then(setTitles); }}
+        tags={tags}
+      />
     </div>
   );
 }

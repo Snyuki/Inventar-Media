@@ -10,7 +10,8 @@ export default defineConfig({
   server: {
     host: true,
     allowedHosts: [
-      "delicious-overheat-headway.ngrok-free.dev",  // replace with your ngrok URL
+      "delicious-overheat-headway.ngrok-free.dev",
+      "https://inventar-media-frontend.vercel.app",
       "localhost",
     ],
     hmr: {

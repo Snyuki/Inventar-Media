@@ -5,32 +5,53 @@ import { checkAuthRole } from "./lib/api";
 import { UserContext } from "./types";
 import LoginScreen from "./components/LoginScreen";
 import MediaView from "./components/MediaView";
+import { setAuthToken } from "./lib/api";
 
 export default function App() {
   const [session, setSession]         = useState<Session | null>(null);
   const [userCtx, setUserCtx]         = useState<UserContext | null>(null);
-  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [checkingAuth, setCheckingAuth] = useState(false);
 
   // ---- Auth -----------------------------------------------------------
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event: AuthChangeEvent, session: Session | null) => {
-        setSession(session);
-        if (session) {
-          try {
-            const { role, email } = await checkAuthRole();
-            setUserCtx({ role: role as UserContext["role"], email });
-          } catch {
-            setUserCtx({ role: "guest", email: session.user.email ?? null });
-          }
-        } else {
-          setUserCtx(null);
-        }
-        setCheckingAuth(false);
+useEffect(() => {
+  // First: check if there's already a session (including from hash fragment)
+  supabase.auth.getSession().then(async ({ data: { session } }) => {
+    console.log("1")
+    if (session) {
+      setAuthToken(session.access_token);
+      try {
+        const { role, email } = await checkAuthRole(session.access_token);
+        setUserCtx({ role: role as UserContext["role"], email });
+      } catch {
+        setUserCtx({ role: "guest", email: session.user.email ?? null });
       }
-    );
-    return () => subscription.unsubscribe();
-  }, []);
+      setSession(session);
+    }
+    setCheckingAuth(false);
+  });
+
+  // Then: listen for future changes
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    async (_event, session) => {
+      if (session) {
+        setAuthToken(session.access_token);
+        try {
+          console.log("2")
+          const { role, email } = await checkAuthRole(session.access_token);
+          setUserCtx({ role: role as UserContext["role"], email });
+        } catch {
+          setUserCtx({ role: "guest", email: session.user.email ?? null });
+        }
+        setSession(session);
+      } else {
+        setSession(null);
+        setUserCtx(null);
+      }
+    }
+  );
+
+  return () => subscription.unsubscribe();
+}, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
