@@ -37,7 +37,6 @@ async function handleResponse(res: Response): Promise<any> {
 // ---------------------------------------------------------------------------
 
 export async function checkAuthRole(token?: string): Promise<{ role: string; email: string | null }> {
-  console.log("authRole Function called")
   const h: Record<string, string> = { "Content-Type": "application/json" };
   if (token) h["Authorization"] = `Bearer ${token}`;
   const res = await fetch(`${BASE_URL}/auth/check`, { headers: h });

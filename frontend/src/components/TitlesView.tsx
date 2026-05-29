@@ -26,6 +26,7 @@ export default function TitlesView({ userCtx }: Props) {
   useEffect(() => {
     setLoading(true);
     setError(null);
+    setTitles([]);
     Promise.all([fetchTitles(), fetchTags()])
       .then(([titlesData, tagsData]) => {
         setTitles(titlesData);

@@ -74,7 +74,7 @@ TAG_LIGHT_NOVEL = "Light Novel"
 """
 Art Book Tag
 """
-TAG_ART_BOOK = "ART_BOOK"
+TAG_ART_BOOK = "Art Book"
 
 """
 Novel Tag

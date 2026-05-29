@@ -1,11 +1,17 @@
 import { LogOut } from "lucide-react";
 import { UserContext } from "../types";
 import TitlesView from "./TitlesView";
+import { memo } from "react";
 
 interface Props {
   userCtx: UserContext;
   onLogout?: () => void;
 }
+
+const MemoTitlesView = memo(TitlesView, (prev, next) => 
+  prev.userCtx.role === next.userCtx.role &&
+  prev.userCtx.email === next.userCtx.email
+);
 
 export default function MediaView({ userCtx, onLogout }: Props) {
   return (
@@ -43,7 +49,7 @@ export default function MediaView({ userCtx, onLogout }: Props) {
 
       {/* Main */}
       <div className="flex-1 flex justify-center p-4 sm:p-8">
-        <TitlesView userCtx={userCtx} />
+        <MemoTitlesView userCtx={userCtx} />
       </div>
 
       {/* Footer */}

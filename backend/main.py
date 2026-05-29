@@ -147,6 +147,7 @@ engine = sqlalchemy.create_engine(sync_url)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    metadata.create_all(engine)
     await database.connect()
     yield
     await database.disconnect()
@@ -319,6 +320,13 @@ class TitleIn(BaseModel):
     tag_id: str
     is_explicit: bool = False
     external_id: Optional[str] = None
+
+    @field_validator("is_explicit")
+    @classmethod
+    def validate_is_explicit(cls, v):
+        if v is None:
+            raise ValueError("is_explicit cannot be null")
+        return v
  
  
 class TitleUpdate(BaseModel):
