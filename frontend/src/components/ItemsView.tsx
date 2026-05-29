@@ -207,7 +207,7 @@ export default function ItemsView({ title, userCtx, onBack }: Props) {
 
       {/* Cover + meta */}
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 mb-6 flex gap-4">
-        <ItemCover item={languageGroups[0]?.coverItem ?? null} size="lg" />
+        <ItemCover item={languageGroups[0]?.coverItem ?? null} size="lg" fallbackUrl={title.metadata?.coverImageUrl} />
         <div className="flex flex-col justify-center gap-1 min-w-0">
           <p className="text-sm font-medium text-gray-900">{title.name}</p>
           <p className="text-xs text-gray-400">{title.tag.name}</p>
@@ -238,6 +238,7 @@ export default function ItemsView({ title, userCtx, onBack }: Props) {
                 lg={lg}
                 tagColor={tagColor}
                 tagName={title.tag.name}
+                titleFallbackCover={title.metadata?.coverImageUrl}
               />
             ))}
           </Accordion.Root>
@@ -259,13 +260,12 @@ export default function ItemsView({ title, userCtx, onBack }: Props) {
 // ---------------------------------------------------------------------------
 
 function LanguageGroupCard({
-  lg,
-  tagColor,
-  tagName,
+  lg, tagColor, tagName, titleFallbackCover,
 }: {
   lg: LanguageGroup;
   tagColor: string;
   tagName: string;
+  titleFallbackCover: string | null | undefined;
 }) {
   return (
     <Accordion.Item
@@ -274,7 +274,7 @@ function LanguageGroupCard({
     >
       <Accordion.Trigger className="w-full flex items-center text-left group hover:bg-gray-50 transition-colors">
         <div className="w-1 self-stretch flex-shrink-0" style={{ backgroundColor: tagColor }} />
-        <ItemCover item={lg.coverItem} size="sm" />
+        <ItemCover item={lg.coverItem} size="sm" fallbackUrl={titleFallbackCover} />
         <div className="flex-1 py-3 px-3 min-w-0">
           <p className="font-medium text-gray-900 text-sm truncate">
             {lg.volumeGroups[0]?.representative.name}
@@ -385,13 +385,22 @@ function VolumeGroupRow({ vg, tagName }: { vg: VolumeGroup; tagName: string }) {
 // ItemCover
 // ---------------------------------------------------------------------------
 
-function ItemCover({ item, size }: { item: Item | null; size: "sm" | "lg" }) {
+function ItemCover({
+  item,
+  size,
+  fallbackUrl,
+}: {
+  item: Item | null;
+  size: "sm" | "lg";
+  fallbackUrl?: string | null;
+}) {
+  const url = item?.coverImageUrl ?? fallbackUrl ?? null;
   const cls = size === "lg"
     ? "w-20 h-28 rounded flex-shrink-0"
     : "w-10 h-14 flex-shrink-0 ml-2";
 
-  if (item?.coverImageUrl) {
-    return <img src={item.coverImageUrl} alt={item.name} className={`${cls} object-cover`} />;
+  if (url) {
+    return <img src={url} alt={item?.name ?? ""} className={`${cls} object-cover`} />;
   }
   return (
     <div className={`${cls} bg-gray-100 flex items-center justify-center text-xl`}>

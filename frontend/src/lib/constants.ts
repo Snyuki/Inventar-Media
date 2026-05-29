@@ -104,9 +104,9 @@ export const BOOK_TAGS = ["Manga", "Light Novel", "Novel", "Art Book"];
 /**
  * Tags where volume_count and chapter_count apply.
  */
-export const SERIES_COUNT_TAGS = ["Manga", "Light Novel", "Novel"];
+export const APPLY_SERIES_COUNT_TAGS = ["Manga", "Light Novel", "Novel"];
  
 /**
  * Tags where status applies.
  */
-export const STATUS_TAGS = ["Manga", "Light Novel", "Novel", "Anime"];
+export const APPLY_STATUS_TAGS = ["Manga", "Light Novel", "Novel", "Anime"];

@@ -177,9 +177,9 @@ function TitleCard({ title, tagColor }: TitleCardProps) {
       <div className="w-1 flex-shrink-0" style={{ backgroundColor: tagColor }} />
 
       {/* Cover image */}
-      {title.coverImageUrl ? (
+      {title.coverImageUrl ?? title.metadata?.coverImageUrl ? (
         <img
-          src={title.coverImageUrl}
+          src={(title.coverImageUrl ?? title.metadata?.coverImageUrl)!}
           alt={title.name}
           className="w-14 h-20 object-cover flex-shrink-0"
         />
