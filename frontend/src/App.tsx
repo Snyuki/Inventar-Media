@@ -15,20 +15,20 @@ export default function App() {
   // ---- Auth -----------------------------------------------------------
 useEffect(() => {
   // First: check if there's already a session (including from hash fragment)
-  supabase.auth.getSession().then(async ({ data: { session } }) => {
-    console.log("1")
-    if (session) {
-      setAuthToken(session.access_token);
-      try {
-        const { role, email } = await checkAuthRole(session.access_token);
-        setUserCtx({ role: role as UserContext["role"], email });
-      } catch {
-        setUserCtx({ role: "guest", email: session.user.email ?? null });
-      }
-      setSession(session);
-    }
-    setCheckingAuth(false);
-  });
+  // supabase.auth.getSession().then(async ({ data: { session } }) => {
+  //   console.log("1")
+  //   if (session) {
+  //     setAuthToken(session.access_token);
+  //     try {
+  //       const { role, email } = await checkAuthRole(session.access_token);
+  //       setUserCtx({ role: role as UserContext["role"], email });
+  //     } catch {
+  //       setUserCtx({ role: "guest", email: session.user.email ?? null });
+  //     }
+  //     setSession(session);
+  //   }
+  //   setCheckingAuth(false);
+  // });
 
   // Then: listen for future changes
   const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -46,6 +46,7 @@ useEffect(() => {
       } else {
         setSession(null);
         setUserCtx(null);
+        setCheckingAuth(false);
       }
     }
   );
