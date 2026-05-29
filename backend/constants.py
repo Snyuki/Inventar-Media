@@ -92,4 +92,23 @@ From API values
 class From_Api(Enum):
     GOOGLE_BOOKS = "google_books"
     OPEN_LIBRARY = "openlibrary"
-    NO_API = "none"
+    ANILIST      = "anilist"
+    NO_API       = "none"
+
+
+"""
+Regex patterns to strip suffixes from AniList Queries
+"""
+STRIP_ANILIST_QUERY_STRING_REGEX_PATTERNS = [
+    r'\s+Vol\.?\s*\d+.*$',
+    r'\s+Volume\s*\d+.*$',
+    r'\s+Band\s*\d+.*$',
+    r'\s+Bd\.?\s*\d+.*$',
+    r'\s+#\s*\d+.*$',
+    r'\s+Tome\s*\d+.*$',
+    r'\s+Book\s*\d+.*$',
+    r'\s+Part\s*\d+.*$',
+    r'\s+Episode\s*\d+.*$',
+    r'\s+Box\s*\d+.*$',
+    r'\s+\d+$',  # trailing number only as last resort
+]

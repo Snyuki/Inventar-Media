@@ -10,7 +10,7 @@ export interface UserContext {
 }
 
 // ---------------------------------------------------------------------------
-// Tags
+// Tags (media type tags: Manga, Anime, etc.)
 // ---------------------------------------------------------------------------
 
 export interface Tag {
@@ -22,14 +22,25 @@ export interface Tag {
 // Titles
 // ---------------------------------------------------------------------------
 
+export interface TitleMetadata {
+  volumeCount:      number | null;
+  chapterCount:     number | null;
+  status:           string | null;
+  anilistId:        number | null;
+  coverImageUrl:    string | null; // series-level fallback cover from AniList
+}
+
 export interface Title {
-  id: string;
-  name: string;
-  tag: Tag;
-  isExplicit: boolean;
-  externalId: string | null;
-  createdAt: string;
+  id:           string;
+  name:         string;
+  tag:          Tag;
+  isExplicit:   boolean;
+  externalId:   string | null;
+  createdAt:    string;
   coverImageUrl: string | null; // resolved from first item at runtime
+  metadata:     TitleMetadata | null;
+  mediaTags:    string[];
+  mediaGenres:  string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -37,40 +48,58 @@ export interface Title {
 // ---------------------------------------------------------------------------
 
 export interface Item {
-  id: string;
-  titleId: string;
-  name: string;
-  volumeNumber: string | null;
-  language: string | null;
-  edition: string | null;
-  coverImageUrl: string | null;
-  externalId: string | null;
-  dateAdded: string;
+  id:             string;
+  titleId:        string;
+  name:           string;
+  nameRomaji:     string | null;
+  nameEnglish:    string | null;
+  volumeNumber:   string | null;
+  language:       string | null;
+  edition:        string | null;
+  coverImageUrl:  string | null;
+  externalId:     string | null;
+  dateAdded:      string;
   // type-specific fields (null if not applicable)
-  isbn10: string | null;
-  isbn13: string | null;
-  publisher: string | null;
-  author: string | null;
-  publishDate: string | null;
-  ean: string | null;
+  isbn10:       string | null;
+  isbn13:       string | null;
+  publisher:    string | null;
+  author:       string | null;
+  publishDate:  string | null;
+  pageCount:    number | null;
+  ean:          string | null;
 }
 
 // ---------------------------------------------------------------------------
 // Lookup
 // ---------------------------------------------------------------------------
- 
+
 export interface LookupResult {
-  code: string;
-  code_type: string;
+  code:          string;
+  code_type:     string;
   suggested_tag: string | null;
-  name: string | null;
-  author: string | null;
-  publisher: string | null;
-  publish_date: string | null;
+  // Item-level fields
+  name:            string | null;
+  name_romaji:     string | null;
+  name_english:    string | null;
+  author:          string | null;
+  publisher:       string | null;
+  publish_date:    string | null;
   cover_image_url: string | null;
-  isbn_10: string | null;
-  isbn_13: string | null;
-  ean: string | null;
-  from_api: string | null;
+  isbn_10:         string | null;
+  isbn_13:         string | null;
+  ean:             string | null;
+  page_count:      number | null;
+  // Title metadata fields
+  volume_count:          number | null;
+  chapter_count:         number | null;
+  status:                string | null;
+  anilist_id:            number | null;
+  title_cover_image_url: string | null;
+  // Flags
+  anilist_found: boolean;
+  is_adult:      boolean;
+  // Lists
+  tags:         string[];
+  genres:       string[];
+  sources_used: string[];
 }
- 

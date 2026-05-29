@@ -132,7 +132,41 @@ items_sonstiges_table = sqlalchemy.Table(
     sqlalchemy.Column("isbn_10",  sqlalchemy.String, nullable=True),
     sqlalchemy.Column("isbn_13",  sqlalchemy.String, nullable=True),
 )
+
+title_metadata_table = sqlalchemy.Table(
+    "title_metadata", metadata,
+    sqlalchemy.Column("title_id",      sqlalchemy.dialects.postgresql.UUID(as_uuid=False), primary_key=True),
+    sqlalchemy.Column("volume_count",  sqlalchemy.Integer, nullable=True),
+    sqlalchemy.Column("chapter_count", sqlalchemy.Integer, nullable=True),
+    sqlalchemy.Column("status",        sqlalchemy.String, nullable=True),
+    sqlalchemy.Column("anilist_id",    sqlalchemy.Integer, nullable=True),
+    sqlalchemy.Column("cover_image_url", sqlalchemy.String, nullable=True),  
+)
  
+media_tags_table = sqlalchemy.Table(
+    "media_tags", metadata,
+    sqlalchemy.Column("id",   sqlalchemy.dialects.postgresql.UUID(as_uuid=False), primary_key=True),
+    sqlalchemy.Column("name", sqlalchemy.String, nullable=False, unique=True),
+)
+ 
+title_media_tags_table = sqlalchemy.Table(
+    "title_media_tags", metadata,
+    sqlalchemy.Column("title_id", sqlalchemy.dialects.postgresql.UUID(as_uuid=False), nullable=False),
+    sqlalchemy.Column("tag_id",   sqlalchemy.dialects.postgresql.UUID(as_uuid=False), nullable=False),
+)
+ 
+media_genres_table = sqlalchemy.Table(
+    "media_genres", metadata,
+    sqlalchemy.Column("id",   sqlalchemy.dialects.postgresql.UUID(as_uuid=False), primary_key=True),
+    sqlalchemy.Column("name", sqlalchemy.String, nullable=False, unique=True),
+)
+ 
+title_media_genres_table = sqlalchemy.Table(
+    "title_media_genres", metadata,
+    sqlalchemy.Column("title_id",  sqlalchemy.dialects.postgresql.UUID(as_uuid=False), nullable=False),
+    sqlalchemy.Column("genre_id",  sqlalchemy.dialects.postgresql.UUID(as_uuid=False), nullable=False),
+)
+
 TAG_TO_DETAIL_TABLE: dict[str, sqlalchemy.Table] = {
     "Manga":        items_manga_table,
     "Light Novel":  items_light_novel_table,
@@ -316,10 +350,19 @@ class TitleOut(BaseModel):
  
  
 class TitleIn(BaseModel):
-    name: str
-    tag_id: str
+    name:        str
+    tag_id:      str
     is_explicit: bool = False
     external_id: Optional[str] = None
+    # Title metadata — optional, from API
+    volume_count:  Optional[int] = None
+    chapter_count: Optional[int] = None
+    status:        Optional[str] = None
+    anilist_id:    Optional[int] = None
+    title_cover_image_url: Optional[str] = None
+    # Tags and genres
+    tags:   list[str] = []
+    genres: list[str] = []
 
     @field_validator("is_explicit")
     @classmethod
@@ -342,19 +385,23 @@ class TitleUpdate(BaseModel):
  
 class ItemIn(BaseModel):
     name:            str
+    name_romaji:     Optional[str] = None
+    name_english:    Optional[str] = None
     volume_number:   Optional[str] = None
     language:        Optional[str] = None
     edition:         Optional[str] = None
     cover_image_url: Optional[str] = None
     external_id:     Optional[str] = None
-    # Type-specific detail fields — only the relevant ones need to be filled
+    # Book-specific
     isbn_10:         Optional[str] = None
     isbn_13:         Optional[str] = None
     publisher:       Optional[str] = None
     author:          Optional[str] = None
     publish_date:    Optional[str] = None
+    page_count:      Optional[int] = None
+    # Anime-specific
     ean:             Optional[str] = None
-
+ 
     @field_validator("cover_image_url")
     @classmethod
     def validate_cover_url(cls, v):
@@ -363,24 +410,26 @@ class ItemIn(BaseModel):
         if not re.match(r"^https?://", v):
             raise ValueError("cover_image_url must be a valid http/https URL")
         return v
- 
+    
  
 class ItemOut(BaseModel):
     id:              str
     title_id:        str
     name:            str
+    name_romaji:     Optional[str] = None
+    name_english:    Optional[str] = None
     volume_number:   Optional[str]
     language:        Optional[str]
     edition:         Optional[str]
     cover_image_url: Optional[str]
     external_id:     Optional[str]
     date_added:      str
-    # Type-specific fields (None if not applicable for this type)
     isbn_10:         Optional[str] = None
     isbn_13:         Optional[str] = None
     publisher:       Optional[str] = None
     author:          Optional[str] = None
     publish_date:    Optional[str] = None
+    page_count:      Optional[int] = None
     ean:             Optional[str] = None
  
 
@@ -392,15 +441,29 @@ class LookupResult(BaseModel):
     code: str                        # the raw barcode value
     code_type: str                   # "isbn13", "isbn10", "ean", "unknown"
     suggested_tag: Optional[str]     # "Manga", "Anime", None, etc.
-    name:         Optional[str] = None
-    author:       Optional[str] = None
-    publisher:    Optional[str] = None
-    publish_date: Optional[str] = None
+    name:            Optional[str] = None  # native name
+    name_romaji:     Optional[str] = None
+    name_english:    Optional[str] = None
+    author:          Optional[str] = None
+    publisher:       Optional[str] = None
+    publish_date:    Optional[str] = None
     cover_image_url: Optional[str] = None
-    isbn_10:      Optional[str] = None
-    isbn_13:      Optional[str] = None
-    ean:          Optional[str] = None
-    from_api:     Optional[str] = None
+    isbn_10:         Optional[str] = None
+    isbn_13:         Optional[str] = None
+    ean:             Optional[str] = None
+    page_count:      Optional[int] = None
+    # Title metadata fields
+    volume_count:    Optional[int] = None
+    chapter_count:   Optional[int] = None
+    status:          Optional[str] = None
+    anilist_id:      Optional[int] = None
+    title_cover_image_url: Optional[str] = None  # series-level fallback cover
+    anilist_found:      bool = True  # False triggers "Search AniList" button in UI
+    # Explicit flag hint (not stored — used to pre-set is_explicit)
+    is_adult:        bool = False
+    tags:            list[str] = []
+    genres:          list[str] = []
+    sources_used:        list[str] = []
 
 
 # ---------------------------------------------------------------------------
@@ -443,6 +506,8 @@ async def fetch_item_with_detail(item_id: str, tag_name: str) -> ItemOut:
         id=str(item_row["id"]),
         title_id=str(item_row["title_id"]),
         name=item_row["name"],
+        name_romaji=item_row["name_romaji"],
+        name_english=item_row["name_english"],
         volume_number=item_row["volume_number"],
         language=item_row["language"],
         edition=item_row["edition"],
@@ -454,8 +519,89 @@ async def fetch_item_with_detail(item_id: str, tag_name: str) -> ItemOut:
         publisher=detail_row["publisher"] if detail_row and "publisher" in detail_row.keys() else None,
         author=detail_row["author"] if detail_row and "author" in detail_row.keys() else None,
         publish_date=detail_row["publish_date"] if detail_row and "publish_date" in detail_row.keys() else None,
+        page_count=detail_row["page_count"] if detail_row and "page_count" in detail_row.keys() else None,
         ean=detail_row["ean"] if detail_row and "ean" in detail_row.keys() else None,
     )
+
+
+async def upsert_title_metadata(
+    title_id: str,
+    volume_count: Optional[int],
+    chapter_count: Optional[int],
+    status: Optional[str],
+    anilist_id: Optional[int],
+    cover_image_url: Optional[str] = None,  # NEW
+):
+    """Upserts title_metadata for a title. Only updates non-None fields."""
+    existing = await database.fetch_one(
+        title_metadata_table.select().where(
+            title_metadata_table.c.title_id == title_id
+        )
+    )
+    values = {k: v for k, v in {
+        "volume_count":    volume_count,
+        "chapter_count":   chapter_count,
+        "status":          status,
+        "anilist_id":      anilist_id,
+        "cover_image_url": cover_image_url,  # NEW
+    }.items() if v is not None}
+ 
+    if not values:
+        return
+ 
+    if existing:
+        await database.execute(
+            title_metadata_table.update()
+            .where(title_metadata_table.c.title_id == title_id)
+            .values(**values)
+        )
+    else:
+        await database.execute(
+            title_metadata_table.insert().values(title_id=title_id, **values)
+        )
+
+
+async def upsert_tags_and_genres(title_id: str, tags: list[str], genres: list[str]):
+    """
+    Ensures all tag/genre names exist in media_tags/media_genres,
+    then links them to the title via the n:m tables.
+    Existing links are preserved — only new ones are added.
+    """
+    for tag_name in tags:
+        # Upsert tag
+        await database.execute("""
+            INSERT INTO media_tags (id, name)
+            VALUES (:id, :name)
+            ON CONFLICT (name) DO NOTHING
+        """, values={"id": str(uuid.uuid4()), "name": tag_name})
+        # Get tag id
+        tag_row = await database.fetch_one(
+            media_tags_table.select().where(media_tags_table.c.name == tag_name)
+        )
+        if tag_row:
+            await database.execute("""
+                INSERT INTO title_media_tags (title_id, tag_id)
+                VALUES (:title_id, :tag_id)
+                ON CONFLICT DO NOTHING
+            """, values={"title_id": title_id, "tag_id": str(tag_row["id"])})
+ 
+    for genre_name in genres:
+        # Upsert genre
+        await database.execute("""
+            INSERT INTO media_genres (id, name)
+            VALUES (:id, :name)
+            ON CONFLICT (name) DO NOTHING
+        """, values={"id": str(uuid.uuid4()), "name": genre_name})
+        # Get genre id
+        genre_row = await database.fetch_one(
+            media_genres_table.select().where(media_genres_table.c.name == genre_name)
+        )
+        if genre_row:
+            await database.execute("""
+                INSERT INTO title_media_genres (title_id, genre_id)
+                VALUES (:title_id, :genre_id)
+                ON CONFLICT DO NOTHING
+            """, values={"title_id": title_id, "genre_id": str(genre_row["id"])})
 
 
 def detect_code_type(code: str) -> str:
@@ -477,6 +623,24 @@ def suggested_tag_from_code_type(code_type: str) -> Optional[str]:
     if code_type == constants.TYPE_EAN:
         return constants.TAG_ANIME
     return None
+
+
+def strip_volume_suffix(name: str) -> str:
+    """
+    Strips common volume/chapter suffixes from a title name
+    before searching AniList.
+    Examples:
+        "No Game, No Life Vol. 1"  → "No Game, No Life"
+        "One Piece Band 3"         → "One Piece"
+        "Attack on Titan #5"       → "Attack on Titan"
+        "Berserk Volume 10"        → "Berserk"
+        "Sword Art Online Bd. 2"   → "Sword Art Online"
+    """
+    for pattern in constants.STRIP_ANILIST_QUERY_STRING_REGEX_PATTERNS:
+        cleaned = re.sub(pattern, '', name, flags=re.IGNORECASE).strip()
+        if cleaned and cleaned != name:
+            return cleaned
+    return name
 
 
 async def lookup_google_books(code: str, client: httpx.AsyncClient) -> Optional[dict]:
@@ -550,6 +714,79 @@ async def lookup_openlibrary(code: str, client: httpx.AsyncClient) -> Optional[d
     except Exception as e:
         print(f"OpenLibrary lookup error: {e}")
         return None
+    
+
+async def lookup_anilist(
+    search: str,
+    media_type: str,  # "MANGA" or "ANIME"
+    client: httpx.AsyncClient,
+) -> Optional[dict]:
+    """
+    Looks up a title by name via AniList GraphQL API.
+    Automatically strips volume suffixes before searching.
+    Returns series-level metadata only — no volume-specific fields.
+    cover_image_url here is a series fallback, not a volume cover.
+    """
+    cleaned_search = strip_volume_suffix(search)
+ 
+    query = """
+    query ($search: String, $type: MediaType) {
+        Media(search: $search, type: $type) {
+            id
+            title { romaji english native }
+            coverImage { extraLarge }
+            staff { edges { role node { name { full } } } }
+            volumes
+            chapters
+            startDate { year month day }
+            status
+            isAdult
+            genres
+            tags { name }
+        }
+    }
+    """
+    try:
+        res = await client.post(
+            constants.ANILIST_GRAPHQL_URL,
+            json={"query": query, "variables": {"search": cleaned_search, "type": media_type}},
+            timeout=constants.EXTERNAL_API_TIMEOUT_SECONDS,
+        )
+        data = res.json()
+        if "errors" in data or not data.get("data", {}).get("Media"):
+            return None
+ 
+        media = data["data"]["Media"]
+ 
+        # Extract author — prefer "Story & Art", fall back to "Story" or "Art"
+        authors = [
+            edge["node"]["name"]["full"]
+            for edge in media.get("staff", {}).get("edges", [])
+            if edge.get("role") in ("Story & Art", "Story", "Art", "Original Creator")
+        ]
+ 
+        return {
+            # Title names (series-level, safe for all volumes)
+            "name":            media["title"].get("native"),
+            "name_romaji":     media["title"].get("romaji"),
+            "name_english":    media["title"].get("english"),
+            "author":          ", ".join(dict.fromkeys(authors)) or None,  # deduplicated
+            # Series-level fallback cover — goes into title_metadata, not item
+            "title_cover_image_url": media.get("coverImage", {}).get("extraLarge"),
+            # Series metadata
+            "volume_count":    media.get("volumes"),
+            "chapter_count":   media.get("chapters"),
+            "status":          media.get("status"),
+            "anilist_id":      media.get("id"),
+            "is_adult":        media.get("isAdult", False),
+            "tags":            [t["name"] for t in media.get("tags", [])],
+            "genres":          media.get("genres", []),
+            "from_api":        constants.From_Api.ANILIST.value,
+        }
+    except Exception as e:
+        print(f"AniList lookup error: {e}")
+        return None
+    
 
 # ---------------------------------------------------------------------------
 # Routes
@@ -665,11 +902,7 @@ async def get_title(title_id: str, user: UserContext = Depends(get_optional_user
  
 @app.post("/api/titles", response_model=TitleOut, status_code=201)
 async def create_title(body: TitleIn, user: UserContext = Depends(get_current_user)):
-    """
-    Creates a new title. Admin only.
-    Returns 404 if the given tag_id does not exist.
-    """
-    # Verify tag exists
+    """Creates a new title. Admin only."""
     tag_row = await database.fetch_one(
         tags_table.select().where(tags_table.c.id == body.tag_id)
     )
@@ -687,6 +920,16 @@ async def create_title(body: TitleIn, user: UserContext = Depends(get_current_us
         )
     )
  
+    await upsert_title_metadata(
+        tid,
+        body.volume_count,
+        body.chapter_count,
+        body.status,
+        body.anilist_id,
+        body.title_cover_image_url,  # NEW
+    )
+ 
+    await upsert_tags_and_genres(tid, body.tags, body.genres)
     return await get_title(tid, user)
  
  
@@ -797,11 +1040,7 @@ async def create_item(
     body: ItemIn,
     user: UserContext = Depends(get_current_user),
 ):
-    """
-    Creates a new item under a title. Admin only.
-    Also inserts a row into the correct per-type detail table.
-    Registers the language in language_registry if new.
-    """
+    """Creates a new item under a title. Admin only."""
     tag_name = await get_tag_name_for_title(title_id, user)
  
     iid = str(uuid.uuid4())
@@ -810,6 +1049,8 @@ async def create_item(
             id=iid,
             title_id=title_id,
             name=body.name,
+            name_romaji=body.name_romaji,
+            name_english=body.name_english,
             volume_number=body.volume_number,
             language=body.language,
             edition=body.edition,
@@ -844,9 +1085,7 @@ async def update_item(
     body: ItemIn,
     user: UserContext = Depends(get_current_user),
 ):
-    """
-    Updates an item and its type-specific detail row. Admin only.
-    """
+    """Updates an item and its type-specific detail row. Admin only."""
     item_row = await database.fetch_one(
         items_table.select().where(items_table.c.id == item_id)
     )
@@ -855,12 +1094,13 @@ async def update_item(
  
     tag_name = await get_tag_name_for_title(str(item_row["title_id"]), user)
  
-    # Update base fields
     await database.execute(
         items_table.update()
         .where(items_table.c.id == item_id)
         .values(
             name=body.name,
+            name_romaji=body.name_romaji,
+            name_english=body.name_english,
             volume_number=body.volume_number,
             language=body.language,
             edition=body.edition,
@@ -869,14 +1109,12 @@ async def update_item(
         )
     )
  
-    # Update detail row
     detail_table = TAG_TO_DETAIL_TABLE.get(tag_name)
     if detail_table is not None:
         detail_values: dict = {}
         cols = [c.name for c in detail_table.columns if c.name != "item_id"]
         for col in cols:
             detail_values[col] = getattr(body, col, None)
-        # Upsert: update if exists, insert if not
         existing_detail = await database.fetch_one(
             detail_table.select().where(detail_table.c.item_id == item_id)
         )
@@ -891,7 +1129,6 @@ async def update_item(
                 detail_table.insert().values(item_id=item_id, **detail_values)
             )
  
-    # Register language if new
     if body.language:
         await database.execute("""
             INSERT INTO language_registry (id, language)
@@ -953,18 +1190,18 @@ async def lookup_barcode(
     _: UserContext = Depends(get_optional_user),
 ):
     """
-    Looks up a barcode/ISBN and returns prefill data for the item form.
-    - ISBN-13 / ISBN-10 → tries Google Books, falls back to OpenLibrary
-    - EAN → returns raw EAN with suggested tag "Anime", no API lookup
-    - Unknown → returns code as-is with no prefill
- 
-    Guests can use this endpoint since it reads no user data.
+    Cascading ISBN/barcode lookup.
+    Order: Google Books → OpenLibrary → AniList
+    - Item-level fields (cover_image_url, publish_date, page_count):
+      first non-None wins, AniList never contributes these
+    - Series-level fields (tags, genres, volume_count, etc.):
+      merged from all APIs, AniList is primary source
+    - is_adult: once true, stays true
     """
     code = code.strip()
     code_type = detect_code_type(code)
     suggested_tag = suggested_tag_from_code_type(code_type)
  
-    # Non-book code — return immediately with no API lookup
     if code_type not in (constants.TYPE_ISBN13, constants.TYPE_ISBN10):
         return LookupResult(
             code=code,
@@ -974,26 +1211,136 @@ async def lookup_barcode(
             from_api=constants.From_Api.NO_API.value,
         )
  
-    # Book code — try Google Books first, then OpenLibrary
+    merged: dict = {
+        "name": None, "name_romaji": None, "name_english": None,
+        "author": None, "publisher": None, "publish_date": None,
+        "cover_image_url": None,
+        "title_cover_image_url": None,  # series-level, separate from item cover
+        "isbn_10": None, "isbn_13": None,
+        "page_count": None,
+        "volume_count": None, "chapter_count": None,
+        "status": None, "anilist_id": None,
+        "is_adult": False, "tags": [], "genres": [],
+        "sources_used": [],
+        "anilist_found": True,  # will be set False if AniList returns nothing
+    }
+ 
+    if code_type == constants.TYPE_ISBN10:
+        merged["isbn_10"] = code
+    else:
+        merged["isbn_13"] = code
+ 
+    def merge(result: dict):
+        for key, value in result.items():
+            if key == "is_adult":
+                if value:
+                    merged["is_adult"] = True
+            elif key in ("tags", "genres"):
+                existing = set(merged.get(key, []))
+                existing.update(value or [])
+                merged[key] = list(existing)
+            elif key == "from_api":
+                if value and value != constants.From_Api.NO_API.value:
+                    if value not in merged["sources_used"]:
+                        merged["sources_used"].append(value)
+            elif key == "title_cover_image_url":
+                # Series cover only fills if not already set
+                if merged.get("title_cover_image_url") is None and value:
+                    merged["title_cover_image_url"] = value
+            elif value is not None and merged.get(key) is None:
+                merged[key] = value
+ 
     async with httpx.AsyncClient() as client:
-        result = await lookup_google_books(code, client)
-        if not result:
-            result = await lookup_openlibrary(code, client)
+        gb_result = await lookup_google_books(code, client)
+        if gb_result:
+            merge(gb_result)
  
-    if not result:
-        # No result from any API — return code type info only
-        return LookupResult(
-            code=code,
-            code_type=code_type,
-            suggested_tag=suggested_tag,
-            isbn_10=code if code_type == constants.TYPE_ISBN10 else None,
-            isbn_13=code if code_type == constants.TYPE_ISBN13 else None,
-            from_api=constants.From_Api.NO_API.value,
-        )
+        ol_result = await lookup_openlibrary(code, client)
+        if ol_result:
+            merge(ol_result)
  
+        if merged.get("name"):
+            media_type = "ANIME" if suggested_tag == constants.TAG_ANIME else "MANGA"
+            al_result = await lookup_anilist(merged["name"], media_type, client)
+            if al_result:
+                merge(al_result)
+            else:
+                merged["anilist_found"] = False
+        else:
+            merged["anilist_found"] = False
+ 
+    if not merged["sources_used"]:
+        merged["sources_used"] = [constants.From_Api.NO_API.value]
+
     return LookupResult(
         code=code,
         code_type=code_type,
         suggested_tag=suggested_tag,
-        **result,
+        **merged,
     )
+
+
+@app.get("/api/media-tags")
+async def list_media_tags(
+    q: str = "",
+    _: UserContext = Depends(get_optional_user),
+):
+    """Returns media tag suggestions for autocomplete."""
+    if q:
+        rows = await database.fetch_all("""
+            SELECT name FROM media_tags
+            WHERE name ILIKE :prefix
+            ORDER BY name ASC
+            LIMIT 10
+        """, values={"prefix": f"%{q}%"})
+    else:
+        rows = await database.fetch_all(
+            "SELECT name FROM media_tags ORDER BY name ASC"
+        )
+    return [r["name"] for r in rows]
+ 
+ 
+@app.get("/api/media-genres")
+async def list_media_genres(
+    q: str = "",
+    _: UserContext = Depends(get_optional_user),
+):
+    """Returns media genre suggestions for autocomplete."""
+    if q:
+        rows = await database.fetch_all("""
+            SELECT name FROM media_genres
+            WHERE name ILIKE :prefix
+            ORDER BY name ASC
+            LIMIT 10
+        """, values={"prefix": f"%{q}%"})
+    else:
+        rows = await database.fetch_all(
+            "SELECT name FROM media_genres ORDER BY name ASC"
+        )
+    return [r["name"] for r in rows]
+
+
+@app.get("/api/anilist-search")
+async def anilist_search(
+    q: str,
+    type: str = "MANGA",  # "MANGA" or "ANIME"
+    _: UserContext = Depends(get_optional_user),
+):
+    """
+    Manual AniList search endpoint.
+    Used by the frontend "Search AniList" button when automatic
+    lookup returned no AniList result.
+    Returns the same shape as a LookupResult's AniList fields.
+    """
+    if type not in ("MANGA", "ANIME"):
+        raise HTTPException(status_code=400, detail="type must be MANGA or ANIME")
+    if not q.strip():
+        raise HTTPException(status_code=400, detail="q must not be empty")
+ 
+    async with httpx.AsyncClient() as client:
+        result = await lookup_anilist(q.strip(), type, client)
+ 
+    if not result:
+        return {"found": False}
+ 
+    return {"found": True, **result}
