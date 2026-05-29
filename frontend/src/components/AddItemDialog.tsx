@@ -88,7 +88,6 @@ function TagsGenresInput({ label, value, onChange, fetchSuggestions }: TagsGenre
     } else {
       parts.push(suggestion);
     }
-    const newValue = [...new Set([...value.filter(v => parts.includes(v)), suggestion])];
     // Rebuild from parts to keep order
     const ordered = parts.filter((p, i, arr) => arr.indexOf(p) === i);
     onChange(ordered);
