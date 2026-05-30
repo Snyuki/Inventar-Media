@@ -10,6 +10,7 @@ import {
   fetchMediaTagSuggestions,
   fetchMediaGenreSuggestions,
   anilistSearch,
+  lookupBarcode,
 } from "../lib/api";
 import { Tag, Title, LookupResult } from "../types";
 import { BOOK_TAGS, resolveLanguageCode, stripVolumeSuffix } from "../lib/constants";
@@ -159,6 +160,9 @@ export default function AddItemDialog({
   const [anilistNotFound, setAnilistNotFound]     = useState(false);
   const [anilistQuery, setAnilistQuery]           = useState("");
   const [anilistLoading, setAnilistLoading]       = useState(false);
+  const [isbnQuery, setIsbnQuery]       = useState("");
+  const [isbnLoading, setIsbnLoading]   = useState(false);
+  const [showIsbnSearch, setShowIsbnSearch] = useState(false);
 
   // ---- Title fields --------------------------------------------------------
   const [titles, setTitles]                       = useState<Title[]>([]);
@@ -244,6 +248,9 @@ export default function AddItemDialog({
       setPageCount(null);
       setEan("");
       setFormError(null);
+      setIsbnQuery("");
+      setIsbnLoading(false);
+      setShowIsbnSearch(false);
     }
   }, [open, lockedTitle]);
 
@@ -325,6 +332,10 @@ export default function AddItemDialog({
     setScannerOpen(false);
     prefillFromLookup(result);
 
+  if (result.sources_used.length === 1 && result.sources_used[0] === "none") {
+    setShowIsbnSearch(true);
+  }
+
     // Resolve language code
     if (result.cover_image_url === undefined && (result as any).language) {
       setLanguage(resolveLanguageCode((result as any).language));
@@ -367,6 +378,30 @@ export default function AddItemDialog({
       setFormError("AniList-Suche fehlgeschlagen.");
     } finally {
       setAnilistLoading(false);
+    }
+  };
+
+  // ---- Manual ISBN search --------------------------------------------------
+  const handleIsbnSearch = async () => {
+    if (!isbnQuery.trim()) return;
+    setIsbnLoading(true);
+    setFormError(null);
+    try {
+      const result = await lookupBarcode(isbnQuery.trim());
+      prefillFromLookup(result);
+      if (result.sources_used.length === 1 && result.sources_used[0] === "none") {
+        setFormError("Keine Ergebnisse für ISBN: " + isbnQuery);
+      } else {
+        setShowIsbnSearch(false);
+        if (!result.anilist_found) {
+          setAnilistNotFound(true);
+          setAnilistQuery(result.name ?? "");
+        }
+      }
+    } catch {
+      setFormError("ISBN-Suche fehlgeschlagen.");
+    } finally {
+      setIsbnLoading(false);
     }
   };
 
@@ -474,7 +509,7 @@ export default function AddItemDialog({
               {scannerOpen && (
                 <BarcodeScanner
                   onResult={handleScanResult}
-                  onSkip={() => setScannerOpen(false)}
+                  onSkip={() => { setScannerOpen(false); setShowIsbnSearch(true); }}
                 />
               )}
 
@@ -510,6 +545,37 @@ export default function AddItemDialog({
                           className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 flex items-center gap-1"
                         >
                           {anilistLoading
+                            ? <Loader2 className="w-3 h-3 animate-spin" />
+                            : <Search className="w-3 h-3" />
+                          }
+                          Suchen
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Manual ISBN search */}
+                  {showIsbnSearch && (
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-2">
+                      <p className="text-xs text-gray-600 font-medium">
+                        ISBN manuell eingeben:
+                      </p>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={isbnQuery}
+                          onChange={e => setIsbnQuery(e.target.value)}
+                          onKeyDown={e => e.key === "Enter" && handleIsbnSearch()}
+                          placeholder="ISBN-10 oder ISBN-13..."
+                          className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleIsbnSearch}
+                          disabled={isbnLoading}
+                          className="px-3 py-1.5 bg-gray-700 text-white rounded-lg text-sm font-medium hover:bg-gray-800 disabled:opacity-50 flex items-center gap-1"
+                        >
+                          {isbnLoading
                             ? <Loader2 className="w-3 h-3 animate-spin" />
                             : <Search className="w-3 h-3" />
                           }

@@ -400,7 +400,7 @@ class ItemIn(BaseModel):
     language:        Optional[str] = None
     edition:         Optional[str] = None
     cover_image_url: Optional[str] = None
-    external_id:     list[dict] = []
+    external_ids:     list[dict] = []
     # Book-specific
     isbn_10:         Optional[str] = None
     isbn_13:         Optional[str] = None
