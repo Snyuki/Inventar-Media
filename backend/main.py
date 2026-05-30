@@ -71,7 +71,6 @@ items_table = sqlalchemy.Table(
     sqlalchemy.Column("language",        sqlalchemy.String, nullable=True),
     sqlalchemy.Column("edition",         sqlalchemy.String, nullable=True),
     sqlalchemy.Column("cover_image_url", sqlalchemy.String, nullable=True),
-    sqlalchemy.Column("external_id",     sqlalchemy.String, nullable=True),
     sqlalchemy.Column("date_added",      sqlalchemy.DateTime(timezone=True), nullable=True),
 )
  
@@ -171,6 +170,14 @@ title_media_genres_table = sqlalchemy.Table(
     "title_media_genres", metadata,
     sqlalchemy.Column("title_id",  sqlalchemy.dialects.postgresql.UUID(as_uuid=False), nullable=False),
     sqlalchemy.Column("genre_id",  sqlalchemy.dialects.postgresql.UUID(as_uuid=False), nullable=False),
+)
+
+item_external_ids_table = sqlalchemy.Table(
+    "item_external_ids", metadata,
+    sqlalchemy.Column("id",          sqlalchemy.dialects.postgresql.UUID(as_uuid=False), primary_key=True),
+    sqlalchemy.Column("item_id",     sqlalchemy.dialects.postgresql.UUID(as_uuid=False), nullable=False),
+    sqlalchemy.Column("source",      sqlalchemy.String, nullable=False),
+    sqlalchemy.Column("external_id", sqlalchemy.String, nullable=False),
 )
 
 TAG_TO_DETAIL_TABLE: dict[str, sqlalchemy.Table] = {
@@ -393,7 +400,7 @@ class ItemIn(BaseModel):
     language:        Optional[str] = None
     edition:         Optional[str] = None
     cover_image_url: Optional[str] = None
-    external_id:     Optional[str] = None
+    external_id:     list[dict] = []
     # Book-specific
     isbn_10:         Optional[str] = None
     isbn_13:         Optional[str] = None
@@ -424,7 +431,6 @@ class ItemOut(BaseModel):
     language:        Optional[str]
     edition:         Optional[str]
     cover_image_url: Optional[str]
-    external_id:     Optional[str]
     date_added:      str
     isbn_10:         Optional[str] = None
     isbn_13:         Optional[str] = None
@@ -433,6 +439,7 @@ class ItemOut(BaseModel):
     publish_date:    Optional[str] = None
     page_count:      Optional[int] = None
     ean:             Optional[str] = None
+    external_ids:    list[dict] = []
  
 
 # ---------------------------------------------------------------------------
@@ -455,6 +462,7 @@ class LookupResult(BaseModel):
     language:        Optional[str] = None
     ean:             Optional[str] = None
     page_count:      Optional[int] = None
+    language:        Optional[str] = None
     # Title metadata fields
     volume_count:    Optional[int] = None
     chapter_count:   Optional[int] = None
@@ -466,7 +474,8 @@ class LookupResult(BaseModel):
     is_adult:        bool = False
     tags:            list[str] = []
     genres:          list[str] = []
-    sources_used:        list[str] = []
+    sources_used:    list[str] = []
+    external_ids:    list[dict] = [] 
 
 
 # ---------------------------------------------------------------------------
@@ -491,7 +500,7 @@ async def get_tag_name_for_title(title_id: str, user: UserContext) -> str:
  
 
 async def fetch_item_with_detail(item_id: str, tag_name: str) -> ItemOut:
-    """Fetches base item + type-specific detail and returns a combined ItemOut."""
+    """Fetches base item + type-specific detail + external IDs."""
     item_row = await database.fetch_one(
         items_table.select().where(items_table.c.id == item_id)
     )
@@ -505,6 +514,16 @@ async def fetch_item_with_detail(item_id: str, tag_name: str) -> ItemOut:
             detail_table.select().where(detail_table.c.item_id == item_id)
         )
  
+    ext_id_rows = await database.fetch_all(
+        item_external_ids_table.select().where(
+            item_external_ids_table.c.item_id == item_id
+        )
+    )
+    external_ids = [
+        {"source": r["source"], "external_id": r["external_id"]}
+        for r in ext_id_rows
+    ]
+ 
     return ItemOut(
         id=str(item_row["id"]),
         title_id=str(item_row["title_id"]),
@@ -515,7 +534,6 @@ async def fetch_item_with_detail(item_id: str, tag_name: str) -> ItemOut:
         language=item_row["language"],
         edition=item_row["edition"],
         cover_image_url=item_row["cover_image_url"],
-        external_id=item_row["external_id"],
         date_added=str(item_row["date_added"]),
         isbn_10=detail_row["isbn_10"] if detail_row and "isbn_10" in detail_row.keys() else None,
         isbn_13=detail_row["isbn_13"] if detail_row and "isbn_13" in detail_row.keys() else None,
@@ -524,6 +542,7 @@ async def fetch_item_with_detail(item_id: str, tag_name: str) -> ItemOut:
         publish_date=detail_row["publish_date"] if detail_row and "publish_date" in detail_row.keys() else None,
         page_count=detail_row["page_count"] if detail_row and "page_count" in detail_row.keys() else None,
         ean=detail_row["ean"] if detail_row and "ean" in detail_row.keys() else None,
+        external_ids=external_ids,
     )
 
 
@@ -533,7 +552,7 @@ async def upsert_title_metadata(
     chapter_count: Optional[int],
     status: Optional[str],
     anilist_id: Optional[int],
-    cover_image_url: Optional[str] = None,  # NEW
+    cover_image_url: Optional[str] = None,
 ):
     """Upserts title_metadata for a title. Only updates non-None fields."""
     existing = await database.fetch_one(
@@ -546,7 +565,7 @@ async def upsert_title_metadata(
         "chapter_count":   chapter_count,
         "status":          status,
         "anilist_id":      anilist_id,
-        "cover_image_url": cover_image_url,  # NEW
+        "cover_image_url": cover_image_url,
     }.items() if v is not None}
  
     if not values:
@@ -607,6 +626,33 @@ async def upsert_tags_and_genres(title_id: str, tags: list[str], genres: list[st
             """, values={"title_id": title_id, "genre_id": str(genre_row["id"])})
 
 
+async def upsert_item_external_ids(item_id: str, external_ids: list[dict]):
+    """
+    Upserts external IDs for an item.
+    Each entry: {"source": "google_books", "external_id": "..."}
+    Skips entries with unknown sources.
+    """
+    valid_sources = {e.value for e in constants.From_Api
+                     if e != constants.From_Api.NO_API}
+ 
+    for entry in external_ids:
+        source = entry.get("source")
+        ext_id = entry.get("external_id")
+        if not source or not ext_id or source not in valid_sources:
+            continue
+        await database.execute("""
+            INSERT INTO item_external_ids (id, item_id, source, external_id)
+            VALUES (:id, :item_id, :source, :external_id)
+            ON CONFLICT (item_id, source) DO UPDATE
+            SET external_id = EXCLUDED.external_id
+        """, values={
+            "id":          str(uuid.uuid4()),
+            "item_id":     item_id,
+            "source":      source,
+            "external_id": ext_id,
+        })
+
+
 def detect_code_type(code: str) -> str:
     """Detects whether a barcode is ISBN-13, ISBN-10, EAN, or unknown."""
     digits_only = code.replace("-", "").replace(" ", "")
@@ -659,10 +705,10 @@ async def lookup_google_books(code: str, client: httpx.AsyncClient) -> Optional[
             timeout=constants.EXTERNAL_API_TIMEOUT_SECONDS,
         )
         data = res.json()
-        print(f"Google Books response: {data}")
         if data.get("totalItems", 0) == 0:
             return None
-        volume = data["items"][0]["volumeInfo"]
+        item = data["items"][0]
+        volume = item["volumeInfo"]
         isbn_10 = None
         isbn_13 = None
         for identifier in volume.get("industryIdentifiers", []):
@@ -671,16 +717,17 @@ async def lookup_google_books(code: str, client: httpx.AsyncClient) -> Optional[
             if identifier["type"] == "ISBN_13":
                 isbn_13 = identifier["identifier"]
         return {
-            "name":            volume.get("title"),
-            "author":          ", ".join(volume.get("authors", [])) or None,
-            "publisher":       volume.get("publisher"),
-            "publish_date":    volume.get("publishedDate"),
-            "cover_image_url": volume.get("imageLinks", {}).get("thumbnail"),
-            "isbn_10":         isbn_10,
-            "isbn_13":         isbn_13,
-            "language":        volume.get("language"),
-            "from_api":        constants.From_Api.GOOGLE_BOOKS.value,
-            "page_count":      volume.get("pageCount"),
+            "name":             volume.get("title"),
+            "author":           ", ".join(volume.get("authors", [])) or None,
+            "publisher":        volume.get("publisher"),
+            "publish_date":     volume.get("publishedDate"),
+            "cover_image_url":  volume.get("imageLinks", {}).get("thumbnail"),
+            "isbn_10":          isbn_10,
+            "isbn_13":          isbn_13,
+            "language":         volume.get("language"),
+            "page_count":       volume.get("pageCount"),
+            "google_books_id":  item.get("id"),
+            "from_api":         constants.From_Api.GOOGLE_BOOKS.value,
         }
     except Exception as e:
         print(f"Google Books lookup error: {e}")
@@ -931,7 +978,7 @@ async def create_title(body: TitleIn, user: UserContext = Depends(get_current_us
         body.chapter_count,
         body.status,
         body.anilist_id,
-        body.title_cover_image_url,  # NEW
+        body.title_cover_image_url,
     )
  
     await upsert_tags_and_genres(tid, body.tags, body.genres)
@@ -1060,7 +1107,6 @@ async def create_item(
             language=body.language,
             edition=body.edition,
             cover_image_url=body.cover_image_url,
-            external_id=body.external_id,
         )
     )
  
@@ -1072,6 +1118,9 @@ async def create_item(
         for col in cols:
             detail_values[col] = getattr(body, col, None)
         await database.execute(detail_table.insert().values(**detail_values))
+ 
+    # Upsert external IDs
+    await upsert_item_external_ids(iid, body.external_ids)
  
     # Register language if new
     if body.language:
@@ -1110,7 +1159,6 @@ async def update_item(
             language=body.language,
             edition=body.edition,
             cover_image_url=body.cover_image_url,
-            external_id=body.external_id,
         )
     )
  
@@ -1133,6 +1181,9 @@ async def update_item(
             await database.execute(
                 detail_table.insert().values(item_id=item_id, **detail_values)
             )
+ 
+    # Upsert external IDs
+    await upsert_item_external_ids(item_id, body.external_ids)
  
     if body.language:
         await database.execute("""
@@ -1197,11 +1248,6 @@ async def lookup_barcode(
     """
     Cascading ISBN/barcode lookup.
     Order: Google Books → OpenLibrary → AniList
-    - Item-level fields (cover_image_url, publish_date, page_count):
-      first non-None wins, AniList never contributes these
-    - Series-level fields (tags, genres, volume_count, etc.):
-      merged from all APIs, AniList is primary source
-    - is_adult: once true, stays true
     """
     code = code.strip()
     code_type = detect_code_type(code)
@@ -1213,22 +1259,23 @@ async def lookup_barcode(
             code_type=code_type,
             suggested_tag=suggested_tag,
             ean=code if code_type == constants.TYPE_EAN else None,
-            from_api=constants.From_Api.NO_API.value,
+            sources_used=[constants.From_Api.NO_API.value],
         )
  
     merged: dict = {
         "name": None, "name_romaji": None, "name_english": None,
         "author": None, "publisher": None, "publish_date": None,
         "cover_image_url": None,
-        "title_cover_image_url": None,  # series-level, separate from item cover
+        "title_cover_image_url": None,
         "isbn_10": None, "isbn_13": None,
-        "language": None, 
         "page_count": None,
+        "language": None,
+        "google_books_id": None,
         "volume_count": None, "chapter_count": None,
         "status": None, "anilist_id": None,
         "is_adult": False, "tags": [], "genres": [],
         "sources_used": [],
-        "anilist_found": True,  # will be set False if AniList returns nothing
+        "anilist_found": True,
     }
  
     if code_type == constants.TYPE_ISBN10:
@@ -1250,9 +1297,11 @@ async def lookup_barcode(
                     if value not in merged["sources_used"]:
                         merged["sources_used"].append(value)
             elif key == "title_cover_image_url":
-                # Series cover only fills if not already set
                 if merged.get("title_cover_image_url") is None and value:
                     merged["title_cover_image_url"] = value
+            elif key == "google_books_id":
+                if merged.get("google_books_id") is None and value:
+                    merged["google_books_id"] = value
             elif value is not None and merged.get(key) is None:
                 merged[key] = value
  
@@ -1275,14 +1324,30 @@ async def lookup_barcode(
         else:
             merged["anilist_found"] = False
  
+    external_ids: list[dict] = []
+    if merged.get("google_books_id"):
+        external_ids.append({
+            "source":      constants.From_Api.GOOGLE_BOOKS.value,
+            "external_id": merged["google_books_id"],
+        })
+    if merged.get("anilist_id"):
+        external_ids.append({
+            "source":      constants.From_Api.ANILIST.value,
+            "external_id": str(merged["anilist_id"]),
+        })
+ 
     if not merged["sources_used"]:
         merged["sources_used"] = [constants.From_Api.NO_API.value]
+ 
+    response_merged = {k: v for k, v in merged.items()
+                    if k != "google_books_id"}
 
     return LookupResult(
         code=code,
         code_type=code_type,
         suggested_tag=suggested_tag,
-        **merged,
+        external_ids=external_ids,
+        **response_merged,
     )
 
 

@@ -57,7 +57,7 @@ export interface Item {
   language:       string | null;
   edition:        string | null;
   coverImageUrl:  string | null;
-  externalId:     string | null;
+  externalIds:    Array<{source: string; externalId: string}>;
   dateAdded:      string;
   // type-specific fields (null if not applicable)
   isbn10:       string | null;
@@ -103,4 +103,5 @@ export interface LookupResult {
   tags:         string[];
   genres:       string[];
   sources_used: string[];
+  external_ids:  Array<{ source: string; external_id: string }>;
 }

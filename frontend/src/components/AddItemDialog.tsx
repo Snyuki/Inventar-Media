@@ -186,7 +186,6 @@ export default function AddItemDialog({
   const [language, setLanguage]                   = useState("");
   const [edition, setEdition]                     = useState("");
   const [coverImageUrl, setCoverImageUrl]         = useState("");
-  const [externalId, setExternalId]               = useState("");
   const [isbn10, setIsbn10]                       = useState("");
   const [isbn13, setIsbn13]                       = useState("");
   const [publisher, setPublisher]                 = useState("");
@@ -237,7 +236,6 @@ export default function AddItemDialog({
       setLanguage("");
       setEdition("");
       setCoverImageUrl("");
-      setExternalId("");
       setIsbn10("");
       setIsbn13("");
       setPublisher("");
@@ -281,10 +279,6 @@ export default function AddItemDialog({
     if (result.tags?.length)         setMediaTags(result.tags);
     if (result.genres?.length)       setMediaGenres(result.genres);
     if (result.is_adult)             setIsExplicit(true);
-    // Resolve language code to German name
-    if (result.cover_image_url === null && !coverImageUrl) {
-      // no cover from API, leave empty
-    }
   };
 
   // ---- Title autocomplete --------------------------------------------------
@@ -432,7 +426,7 @@ export default function AddItemDialog({
         language: language.trim() || null,
         edition: edition.trim() || null,
         cover_image_url: coverImageUrl.trim() || null,
-        external_id: externalId.trim() || null,
+        external_ids: [],
         isbn_10: isbn10.trim() || null,
         isbn_13: isbn13.trim() || null,
         publisher: publisher.trim() || null,
@@ -769,21 +763,9 @@ export default function AddItemDialog({
                     </>
                   )}
 
-                  {/* External ID */}
-                  <div>
-                    <label className={labelCls}>Externe ID</label>
-                    <input
-                      type="text"
-                      value={externalId}
-                      onChange={e => setExternalId(e.target.value)}
-                      placeholder="z.B. AniList ID, Google Books ID"
-                      className={inputCls}
-                    />
-                  </div>
-
                   {/* Cover image URL */}
                   <div>
-                    <label className={labelCls}>Cover URL</label>
+                    <label className={labelCls}>Volume Cover URL</label>
                     <input
                       type="text"
                       value={coverImageUrl}

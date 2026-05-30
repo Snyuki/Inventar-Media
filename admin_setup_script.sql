@@ -147,7 +147,6 @@ CREATE TABLE IF NOT EXISTS items (
     language         TEXT,
     edition          TEXT,
     cover_image_url  TEXT,
-    external_id      TEXT,
     date_added       TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
@@ -163,6 +162,25 @@ COMMENT ON COLUMN items.volume_number IS
     'Bandnummer als Text. Wird zur Laufzeit als int geparst.';
 COMMENT ON COLUMN items.edition IS
     'Auflage. Zusammen mit name + language wird im Frontend gruppiert.';
+
+
+-- ------------------------------------------------------------
+-- 7b. Item External IDs
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS item_external_ids (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    item_id     UUID NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+    source      TEXT NOT NULL CHECK (source IN ('google_books', 'openlibrary', 'anilist')),
+    external_id TEXT NOT NULL,
+    UNIQUE (item_id, source)
+);
+
+COMMENT ON TABLE item_external_ids IS
+    'Stores external IDs for items from various APIs. One ID per source per item.';
+COMMENT ON COLUMN item_external_ids.source IS
+    'API source. Fixed list: google_books, openlibrary, anilist. Extend via ALTER TABLE.';
+
+CREATE INDEX IF NOT EXISTS idx_item_external_ids_item_id ON item_external_ids(item_id);
 
 CREATE INDEX IF NOT EXISTS idx_items_title_id ON items(title_id);
 
@@ -328,6 +346,16 @@ CREATE POLICY "items_read_privileged" ON items FOR SELECT USING (
 CREATE POLICY "items_write_admin" ON items FOR ALL USING (
     EXISTS (SELECT 1 FROM user_roles WHERE user_id = auth.uid() AND role = 'admin'));
 
+-- Item external IDs: mirrors items/titles visibility
+ALTER TABLE item_external_ids ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "item_external_ids_read_non_explicit" ON item_external_ids FOR SELECT USING (
+    EXISTS (SELECT 1 FROM items JOIN titles ON titles.id = items.title_id WHERE items.id = item_external_ids.item_id AND titles.is_explicit = false));
+CREATE POLICY "item_external_ids_read_privileged" ON item_external_ids FOR SELECT USING (
+    EXISTS (SELECT 1 FROM user_roles WHERE user_id = auth.uid() AND role IN ('admin', 'all_seeing')));
+CREATE POLICY "item_external_ids_write_admin" ON item_external_ids FOR ALL USING (
+    EXISTS (SELECT 1 FROM user_roles WHERE user_id = auth.uid() AND role = 'admin'));
+
 -- Detail tables
 CREATE POLICY "items_manga_read_non_explicit" ON items_manga FOR SELECT USING (
     EXISTS (SELECT 1 FROM items JOIN titles ON titles.id = items.title_id WHERE items.id = items_manga.item_id AND titles.is_explicit = false));
@@ -377,7 +405,6 @@ CREATE POLICY "items_sonstiges_write_admin" ON items_sonstiges FOR ALL USING (
 -- Aggregates all media data without IDs for easy inspection.
 -- Usage: SELECT * FROM media_overview;
 --        SELECT * FROM media_overview WHERE tag = 'Manga';
---        SELECT * FROM media_overview WHERE explicit = true;
 -- ------------------------------------------------------------
 CREATE OR REPLACE VIEW media_overview AS
 SELECT

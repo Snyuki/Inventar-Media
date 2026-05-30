@@ -133,7 +133,7 @@ function mapItem(i: any): Item {
     language:      i.language ?? null,
     edition:       i.edition ?? null,
     coverImageUrl: i.cover_image_url ?? null,
-    externalId:    i.external_id ?? null,
+    externalIds:   i.external_ids ?? [],
     dateAdded:     i.date_added,
     isbn10:        i.isbn_10 ?? null,
     isbn13:        i.isbn_13 ?? null,
@@ -163,7 +163,7 @@ export async function createItem(
     language?: string | null;
     edition?: string | null;
     cover_image_url?: string | null;
-    external_id?: string | null;
+    external_ids?: Array<{ source: string; external_id: string }>; // NEW
     isbn_10?: string | null;
     isbn_13?: string | null;
     publisher?: string | null;
