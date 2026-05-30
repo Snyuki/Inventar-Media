@@ -19,11 +19,48 @@ export const TAG_COLORS: Record<string, string> = {
 export const TAG_COLOR_FALLBACK = "#9CA3AF";
  
 /**
- * Maps ISO 639-1 language codes (as returned by APIs like Google Books)
+ * Maps ISO 639-1 (2-letter) and ISO 639-2 (3-letter) language codes
  * to German display names used in the language field.
+ * Google Books uses ISO 639-1 (e.g. "ja"), NDL uses ISO 639-2 (e.g. "jpn").
  * If a code is not found here, the raw code is inserted into the field as-is.
  */
 export const LANGUAGE_CODE_MAP: Record<string, string> = {
+  // ISO 639-2 three-letter codes (NDL API)
+  "jpn": "Japanisch",
+  "eng": "Englisch",
+  "ger": "Deutsch",
+  "deu": "Deutsch",
+  "fre": "Französisch",
+  "fra": "Französisch",
+  "chi": "Chinesisch",
+  "zho": "Chinesisch",
+  "kor": "Koreanisch",
+  "spa": "Spanisch",
+  "ita": "Italienisch",
+  "por": "Portugiesisch",
+  "rus": "Russisch",
+  "ara": "Arabisch",
+  "pol": "Polnisch",
+  "nld": "Niederländisch",
+  "swe": "Schwedisch",
+  "dan": "Dänisch",
+  "nor": "Norwegisch",
+  "fin": "Finnisch",
+  "tur": "Türkisch",
+  "vie": "Vietnamesisch",
+  "tha": "Thailändisch",
+  "ind": "Indonesisch",
+  "msa": "Malaiisch",
+  "ces": "Tschechisch",
+  "slk": "Slowakisch",
+  "hun": "Ungarisch",
+  "ron": "Rumänisch",
+  "bul": "Bulgarisch",
+  "hrv": "Kroatisch",
+  "srp": "Serbisch",
+  "ukr": "Ukrainisch",
+  "heb": "Hebräisch",
+  "hin": "Hindi",
   "af":    "Afrikaans",
   "ar":    "Arabisch",
   "bg":    "Bulgarisch",

@@ -90,6 +90,7 @@ export interface LookupResult {
   language:        string | null;
   ean:             string | null;
   page_count:      number | null;
+  volume_number:   string | null;
   // Title metadata fields
   volume_count:          number | null;
   chapter_count:         number | null;

@@ -170,7 +170,7 @@ COMMENT ON COLUMN items.edition IS
 CREATE TABLE IF NOT EXISTS item_external_ids (
     id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     item_id     UUID NOT NULL REFERENCES items(id) ON DELETE CASCADE,
-    source      TEXT NOT NULL CHECK (source IN ('google_books', 'openlibrary', 'anilist')),
+    source      TEXT NOT NULL CHECK (source IN ('google_books', 'openlibrary', 'anilist', 'ndl')),
     external_id TEXT NOT NULL,
     UNIQUE (item_id, source)
 );

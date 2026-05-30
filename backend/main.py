@@ -13,6 +13,8 @@ import jwt as pyjwt
 from jwt import PyJWKClient
 import databases
 import sqlalchemy
+
+import xml.etree.ElementTree as ET
  
 from dotenv import load_dotenv
  
@@ -473,6 +475,7 @@ class LookupResult(BaseModel):
     ean:             Optional[str] = None
     page_count:      Optional[int] = None
     language:        Optional[str] = None
+    volume_number:   Optional[str] = None
     # Title metadata fields
     volume_count:    Optional[int] = None
     chapter_count:   Optional[int] = None
@@ -785,20 +788,159 @@ async def lookup_openlibrary(code: str, client: httpx.AsyncClient) -> Optional[d
         authors = [a["name"] for a in book.get("authors", [])]
         publishers = [p["name"] for p in book.get("publishers", [])]
         cover = book.get("cover", {}).get("large") or book.get("cover", {}).get("medium")
+        
+        ol_cover = None
+        try:
+            cover_url = f"https://covers.openlibrary.org/b/isbn/{code}-L.jpg?default=false"
+            head = await client.head(
+                cover_url,
+                timeout=3.0,
+                headers={"User-Agent": "Mozilla/5.0 (compatible; inventar-media/1.0)"}
+            )
+            if head.status_code == 200:
+                ol_cover = cover_url
+        except Exception:
+            pass
+        final_cover = ol_cover or cover
+
         return {
             "name":            book.get("title"),
             "author":          ", ".join(authors) or None,
             "publisher":       ", ".join(publishers) or None,
             "publish_date":    book.get("publish_date"),
-            "cover_image_url": cover,
+            "cover_image_url": final_cover,
             "isbn_10":         None,
             "isbn_13":         code if len(code) == 13 else None,
+            "openlibrary_id":  book.get("key"),
             "from_api":        constants.From_Api.OPEN_LIBRARY.value,
         }
+
     except Exception as e:
         print(f"OpenLibrary lookup error: {e}")
         return None
     
+
+async def lookup_ndl(code: str, client: httpx.AsyncClient) -> Optional[dict]:
+    """
+    Looks up a book by ISBN via the National Diet Library (NDL) Search API.
+    Particularly strong for Japanese publications.
+    Returns XML which is parsed for title, publisher, volume, language,
+    and alternative (English) title.
+    No API key required. Free for personal/non-commercial use.
+    """
+    try:
+        res = await client.get(
+            constants.NDL_SEARCH_BASE_URL,
+            params={
+                "operation":    "searchRetrieve",
+                "version":      "1.2",
+                "recordSchema": "dcndl",
+                "onlyBib":      "true",
+                "recordPacking": "xml",
+                "query":        f'isbn="{code}" AND dpid=iss-ndl-opac',
+            },
+            timeout=constants.EXTERNAL_API_TIMEOUT_SECONDS,
+        )
+ 
+        root = ET.fromstring(res.text)
+ 
+        # Check for diagnostics (= not found or error)
+        ns_srw = "http://www.loc.gov/zing/srw/"
+        diag = root.find(f"{{{ns_srw}}}diagnostics")
+        if diag is not None:
+            return None
+ 
+        # Check numberOfRecords
+        num = root.find(f"{{{ns_srw}}}numberOfRecords")
+        if num is None or int(num.text or 0) == 0:
+            return None
+ 
+        # Navigate to BibResource
+        ns = {
+            "rdf":     "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+            "rdfs":    "http://www.w3.org/2000/01/rdf-schema#",
+            "dc":      "http://purl.org/dc/elements/1.1/",
+            "dcterms": "http://purl.org/dc/terms/",
+            "dcndl":   "http://ndl.go.jp/dcndl/terms/",
+            "foaf":    "http://xmlns.com/foaf/0.1/",
+        }
+ 
+        bib = root.find(
+            f".//{{{ns_srw}}}recordData"
+            f"//{{{ns['rdf']}}}RDF"
+            f"//{{{ns['dcndl']}}}BibResource"
+        )
+        if bib is None:
+            return None
+ 
+        def find_text(path: str) -> Optional[str]:
+            el = bib.find(path, ns)
+            return el.text.strip() if el is not None and el.text else None
+ 
+        # Title — prefer dcterms:title (full with volume), fall back to dc:title value
+        title_full = find_text("dcterms:title")
+        title_native = find_text("dc:title/rdf:Description/rdf:value")
+ 
+        # Use native title (without volume suffix) as the name
+        name = title_native or title_full
+ 
+        # Alternative title (often the English/romanized title)
+        name_english = find_text("dcndl:alternative/rdf:Description/rdf:value")
+ 
+        # Volume number
+        volume_number = find_text("dcndl:volume/rdf:Description/rdf:value")
+ 
+        # Publisher
+        publisher = find_text(
+            f"dcterms:publisher/{{{ns['foaf']}}}Agent/{{{ns['foaf']}}}name"
+        )
+ 
+        # Publish date
+        publish_date = find_text("dcterms:date")
+        if publish_date:
+            # NDL returns e.g. "2016.4" — normalize to "2016-04"
+            parts = publish_date.replace(".", "-").split("-")
+            if len(parts) >= 2:
+                publish_date = f"{parts[0]}-{parts[1].zfill(2)}"
+            else:
+                publish_date = parts[0]
+ 
+        # Language — NDL uses ISO 639-2 (3-letter codes like "jpn")
+        lang_el = bib.find("dcterms:language", ns)
+        language = lang_el.text.strip() if lang_el is not None and lang_el.text else None
+ 
+        # NDL thumbnail — verify existence via HEAD request
+        # Only works with ISBN-13
+        isbn13_normalized = code if len(code) == 13 else None
+        ndl_cover = None
+        if isbn13_normalized:
+            thumbnail_url = f"https://ndlsearch.ndl.go.jp/thumbnail/{isbn13_normalized}.jpg"
+            try:
+                head = await client.head(
+                    thumbnail_url,
+                    timeout=3.0,
+                    headers={"User-Agent": "Mozilla/5.0 (compatible; inventar-media/1.0)"}
+                )
+                if head.status_code == 200:
+                    ndl_cover = thumbnail_url
+            except Exception:
+                pass
+ 
+        return {
+            "name":            name,
+            "name_english":    name_english,
+            "volume_number":   volume_number,
+            "publisher":       publisher,
+            "publish_date":    publish_date,
+            "language":        language,
+            "cover_image_url": ndl_cover,
+            "from_api":        constants.From_Api.NDL.value,
+        }
+ 
+    except Exception as e:
+        print(f"NDL lookup error: {e}")
+        return None
+
 
 async def lookup_anilist(
     search: str,
@@ -1328,6 +1470,8 @@ async def lookup_barcode(
         "page_count": None,
         "language": None,
         "google_books_id": None,
+        "openlibrary_id": None,
+        "volume_number": None,
         "volume_count": None, "chapter_count": None,
         "status": None, "anilist_id": None,
         "is_adult": False, "tags": [], "genres": [],
@@ -1359,6 +1503,9 @@ async def lookup_barcode(
             elif key == "google_books_id":
                 if merged.get("google_books_id") is None and value:
                     merged["google_books_id"] = value
+            elif key == "openlibrary_id":
+                if merged.get("openlibrary_id") is None and value:
+                    merged["openlibrary_id"] = value
             elif value is not None and merged.get(key) is None:
                 merged[key] = value
  
@@ -1370,6 +1517,11 @@ async def lookup_barcode(
         ol_result = await lookup_openlibrary(code, client)
         if ol_result:
             merge(ol_result)
+
+        # 3. NDL (National Diet Library) — strong for Japanese publications
+        ndl_result = await lookup_ndl(code, client)
+        if ndl_result:
+            merge(ndl_result)
  
         if merged.get("name"):
             media_type = "ANIME" if suggested_tag == constants.TAG_ANIME else "MANGA"
@@ -1386,6 +1538,11 @@ async def lookup_barcode(
         external_ids.append({
             "source":      constants.From_Api.GOOGLE_BOOKS.value,
             "external_id": merged["google_books_id"],
+        })
+    if merged.get("openlibrary_id"):
+        external_ids.append({
+            "source":      constants.From_Api.OPEN_LIBRARY.value,
+            "external_id": merged["openlibrary_id"],
         })
     if merged.get("anilist_id"):
         external_ids.append({

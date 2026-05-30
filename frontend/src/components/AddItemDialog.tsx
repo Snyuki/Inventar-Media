@@ -210,10 +210,17 @@ export default function AddItemDialog({
 
   // ---- Load titles for autocomplete ----------------------------------------
   useEffect(() => {
-    if (!lockedTitle) {
-      fetchTitles().then(setTitles).catch(() => {});
+    if (!lockedTitle && open) {
+      fetchTitles()
+        .then(freshTitles => {
+          setTitles(freshTitles);
+          if (selectedTitle && !freshTitles.find(t => t.id === selectedTitle.id)) {
+            setSelectedTitle(null);
+          }
+        })
+        .catch(() => {});
     }
-  }, [lockedTitle]);
+  }, [lockedTitle, open]);
 
   // ---- Reset on open -------------------------------------------------------
   useEffect(() => {
@@ -262,9 +269,23 @@ export default function AddItemDialog({
       if (!lockedTitle && result.name) {
         setTitleQuery((strippedTitle ? strippedTitle : result.name));
       }
-      // Try to extract volume number from the name
-      const volMatch = result.name.match(/(\d+)$/);
-      if (volMatch) setVolumeNumber(volMatch[1]);
+
+      // Check if an existing title matches and auto-select it
+      const existingTitle = titles.find(
+        t => t.name.toLowerCase() === strippedTitle?.toLowerCase()
+      );
+      if (existingTitle) {
+        setSelectedTitle(existingTitle);
+        setSelectedTagId(existingTitle.tag.id);
+        setIsExplicit(existingTitle.isExplicit);
+      }
+
+      if (result.volume_number) {
+        setVolumeNumber(result.volume_number);
+      } else {
+        const volMatch = result.name.match(/(\d+)$/);
+        if (volMatch) setVolumeNumber(volMatch[1]);
+      }
     }
     if (result.name_romaji)          setNameRomaji(result.name_romaji);
     if (result.name_english)         setNameEnglish(result.name_english);
@@ -389,6 +410,12 @@ export default function AddItemDialog({
     try {
       const result = await lookupBarcode(isbnQuery.trim());
       prefillFromLookup(result);
+
+      if (result.suggested_tag && !lockedTitle) {
+        const matchingTag = tags.find(t => t.name === result.suggested_tag);
+        if (matchingTag) setSelectedTagId(matchingTag.id);
+      }
+
       if (result.sources_used.length === 1 && result.sources_used[0] === "none") {
         setFormError("Keine Ergebnisse für ISBN: " + isbnQuery);
       } else {

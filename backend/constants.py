@@ -15,7 +15,12 @@ GOOGLE_BOOKS_BASE_URL = "https://www.googleapis.com/books/v1/volumes"
 Base URL for the OpenLibrary API (fallback for ISBN lookups).
 """
 OPEN_LIBRARY_BASE_URL = "https://openlibrary.org/api/books"
- 
+
+"""
+Base URL for the NDL API
+"""
+NDL_SEARCH_BASE_URL = "https://ndlsearch.ndl.go.jp/api/sru"
+
 """
 URL for the AniList GraphQL endpoint.
 """
@@ -92,6 +97,7 @@ From API values
 class From_Api(Enum):
     GOOGLE_BOOKS = "google_books"
     OPEN_LIBRARY = "openlibrary"
+    NDL          = "ndl"
     ANILIST      = "anilist"
     NO_API       = "none"
 
