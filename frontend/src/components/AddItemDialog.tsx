@@ -445,389 +445,391 @@ export default function AddItemDialog({
     <Dialog.Root open={open} onOpenChange={v => !v && onClose()}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/40 z-40" />
-        <Dialog.Content className="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-2xl max-h-[92dvh] overflow-y-auto shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-start justify-center px-2 sm:px-4 pt-[3.75rem] pb-2">
+          <Dialog.Content className="bg-white rounded-2xl max-h-[92dvh] overflow-y-auto shadow-xl w-full max-w-[50rem]" aria-describedby={undefined}>
 
-          {/* Handle */}
-          <div className="flex justify-center pt-3 pb-1">
-            <div className="w-10 h-1 bg-gray-300 rounded-full" />
-          </div>
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 bg-gray-300 rounded-full" />
+            </div>
 
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-            <Dialog.Title className="text-base font-semibold text-gray-900">
-              {lockedTitle ? `Add to "${lockedTitle.name}"` : "Add Item"}
-            </Dialog.Title>
-            <Dialog.Close className="p-1 text-gray-400 hover:text-gray-600">
-              <X className="w-5 h-5" />
-            </Dialog.Close>
-          </div>
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+              <Dialog.Title className="text-base font-semibold text-gray-900">
+                {lockedTitle ? `Add to "${lockedTitle.name}"` : "Add Item"}
+              </Dialog.Title>
+              <Dialog.Close className="p-1 text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </Dialog.Close>
+            </div>
 
-          <div className="px-4 py-4 space-y-5">
+            <div className="px-4 py-4 space-y-5">
 
-            {/* Scanner */}
-            {scannerOpen && (
-              <BarcodeScanner
-                onResult={handleScanResult}
-                onSkip={() => setScannerOpen(false)}
-              />
-            )}
+              {/* Scanner */}
+              {scannerOpen && (
+                <BarcodeScanner
+                  onResult={handleScanResult}
+                  onSkip={() => setScannerOpen(false)}
+                />
+              )}
 
-            {!scannerOpen && (
-              <>
-                {/* Tag mismatch warning */}
-                {tagMismatchWarning && (
-                  <div className="flex gap-2 bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800">
-                    <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                    <span>{tagMismatchWarning}</span>
-                  </div>
-                )}
-
-                {/* AniList manual search — only when automatic lookup returned no AniList result */}
-                {anilistNotFound && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
-                    <p className="text-xs text-blue-700 font-medium">
-                      Kein AniList-Eintrag automatisch gefunden. Manuell suchen:
-                    </p>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={anilistQuery}
-                        onChange={e => setAnilistQuery(e.target.value)}
-                        onKeyDown={e => e.key === "Enter" && handleAnilistSearch()}
-                        placeholder="Serienname..."
-                        className="flex-1 px-3 py-1.5 border border-blue-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleAnilistSearch}
-                        disabled={anilistLoading}
-                        className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 flex items-center gap-1"
-                      >
-                        {anilistLoading
-                          ? <Loader2 className="w-3 h-3 animate-spin" />
-                          : <Search className="w-3 h-3" />
-                        }
-                        Suchen
-                      </button>
+              {!scannerOpen && (
+                <>
+                  {/* Tag mismatch warning */}
+                  {tagMismatchWarning && (
+                    <div className="flex gap-2 bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800">
+                      <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                      <span>{tagMismatchWarning}</span>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* ── TITLE SECTION ── */}
-                {titleIsLocked ? (
-                  <div>
-                    <label className={labelReqCls}>Titel</label>
-                    <div className="px-3 py-2 bg-gray-100 rounded-lg text-sm text-gray-700 flex items-center justify-between">
-                      <span>{lockedTitle!.name}</span>
-                      <span className="text-xs text-gray-400">{lockedTitle!.tag.name}</span>
-                    </div>
-                    {/* is_explicit — read-only when locked */}
-                    <div className="flex items-center gap-2 mt-2">
-                      <input
-                        type="checkbox"
-                        id="is_explicit_locked"
-                        checked={isExplicit}
-                        disabled
-                        className="w-4 h-4 opacity-50"
-                      />
-                      <label htmlFor="is_explicit_locked" className="text-sm text-gray-400">
-                        Explicit (vom Titel übernommen)
-                      </label>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    {/* Tag selector */}
-                    <div>
-                      <label className={labelReqCls}>Tag</label>
-                      <div className="flex flex-wrap gap-2">
-                        {tags.map(tag => (
-                          <button
-                            key={tag.id}
-                            type="button"
-                            onClick={() => setSelectedTagId(tag.id)}
-                            className={`px-3 py-1 rounded-full text-sm font-medium transition-colors border-0 ${
-                              selectedTagId === tag.id
-                                ? "bg-blue-600 text-white"
-                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                            }`}
-                          >
-                            {tag.name}
-                          </button>
-                        ))}
+                  {/* AniList manual search — only when automatic lookup returned no AniList result */}
+                  {anilistNotFound && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
+                      <p className="text-xs text-blue-700 font-medium">
+                        Kein AniList-Eintrag automatisch gefunden. Manuell suchen:
+                      </p>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={anilistQuery}
+                          onChange={e => setAnilistQuery(e.target.value)}
+                          onKeyDown={e => e.key === "Enter" && handleAnilistSearch()}
+                          placeholder="Serienname..."
+                          className="flex-1 px-3 py-1.5 border border-blue-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAnilistSearch}
+                          disabled={anilistLoading}
+                          className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 flex items-center gap-1"
+                        >
+                          {anilistLoading
+                            ? <Loader2 className="w-3 h-3 animate-spin" />
+                            : <Search className="w-3 h-3" />
+                          }
+                          Suchen
+                        </button>
                       </div>
                     </div>
+                  )}
 
-                    {/* Title autocomplete */}
-                    <div className="relative">
+                  {/* ── TITLE SECTION ── */}
+                  {titleIsLocked ? (
+                    <div>
                       <label className={labelReqCls}>Titel</label>
-                      <input
-                        ref={titleInputRef}
-                        type="text"
-                        value={titleQuery}
-                        onChange={e => handleTitleQueryChange(e.target.value)}
-                        onBlur={() => setTimeout(() => setShowTitleSuggestions(false), 150)}
-                        placeholder="Titel suchen oder neu anlegen..."
-                        className={inputCls}
-                      />
-                      {showTitleSuggestions && titleSuggestions.length > 0 && (
-                        <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto">
-                          {titleSuggestions.map(t => (
-                            <li
-                              key={t.id}
-                              onMouseDown={() => handleSelectTitle(t)}
-                              className="px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer flex items-center justify-between"
+                      <div className="px-3 py-2 bg-gray-100 rounded-lg text-sm text-gray-700 flex items-center justify-between">
+                        <span>{lockedTitle!.name}</span>
+                        <span className="text-xs text-gray-400">{lockedTitle!.tag.name}</span>
+                      </div>
+                      {/* is_explicit — read-only when locked */}
+                      <div className="flex items-center gap-2 mt-2">
+                        <input
+                          type="checkbox"
+                          id="is_explicit_locked"
+                          checked={isExplicit}
+                          disabled
+                          className="w-4 h-4 opacity-50"
+                        />
+                        <label htmlFor="is_explicit_locked" className="text-sm text-gray-400">
+                          Explicit (vom Titel übernommen)
+                        </label>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Tag selector */}
+                      <div>
+                        <label className={labelReqCls}>Tag</label>
+                        <div className="flex flex-wrap gap-2">
+                          {tags.map(tag => (
+                            <button
+                              key={tag.id}
+                              type="button"
+                              onClick={() => setSelectedTagId(tag.id)}
+                              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors border-0 ${
+                                selectedTagId === tag.id
+                                  ? "bg-blue-600 text-white"
+                                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                              }`}
                             >
-                              <span>{t.name}</span>
-                              <span className="text-xs text-gray-400">{t.tag.name}</span>
-                            </li>
+                              {tag.name}
+                            </button>
                           ))}
-                        </ul>
-                      )}
-                      {titleQuery && !selectedTitle && (
-                        <p className="text-xs text-blue-600 mt-1">
-                          Neuer Titel wird angelegt: „{titleQuery}"
-                        </p>
-                      )}
-                    </div>
+                        </div>
+                      </div>
 
-                    {/* is_explicit — editable only when title is not locked */}
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id="is_explicit"
-                        checked={isExplicit}
-                        onChange={e => setIsExplicit(e.target.checked)}
-                        className="w-4 h-4"
-                      />
-                      <label htmlFor="is_explicit" className="text-sm text-gray-700">
-                        Explicit
-                      </label>
-                    </div>
-                  </>
-                )}
+                      {/* Title autocomplete */}
+                      <div className="relative">
+                        <label className={labelReqCls}>Titel</label>
+                        <input
+                          ref={titleInputRef}
+                          type="text"
+                          value={titleQuery}
+                          onChange={e => handleTitleQueryChange(e.target.value)}
+                          onBlur={() => setTimeout(() => setShowTitleSuggestions(false), 150)}
+                          placeholder="Titel suchen oder neu anlegen..."
+                          className={inputCls}
+                        />
+                        {showTitleSuggestions && titleSuggestions.length > 0 && (
+                          <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto">
+                            {titleSuggestions.map(t => (
+                              <li
+                                key={t.id}
+                                onMouseDown={() => handleSelectTitle(t)}
+                                className="px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer flex items-center justify-between"
+                              >
+                                <span>{t.name}</span>
+                                <span className="text-xs text-gray-400">{t.tag.name}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        {titleQuery && !selectedTitle && (
+                          <p className="text-xs text-blue-600 mt-1">
+                            Neuer Titel wird angelegt: „{titleQuery}"
+                          </p>
+                        )}
+                      </div>
 
-                {/* ── ITEM SECTION ── */}
-
-                {/* Item name (native) */}
-                <div>
-                  <label className={labelReqCls}>Item Name</label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                    placeholder="z.B. ノーゲーム・ノーライフ"
-                    className={inputCls}
-                  />
-                </div>
-
-                {/* Romaji — only shown when language is Japanese */}
-                {isJapanese && (
-                  <div>
-                    <label className={labelCls}>Romaji Name</label>
-                    <input
-                      type="text"
-                      value={nameRomaji}
-                      onChange={e => setNameRomaji(e.target.value)}
-                      placeholder="z.B. No Game No Life"
-                      className={inputCls}
-                    />
-                  </div>
-                )}
-
-                {/* English name — only shown when language is not English */}
-                {!isEnglish && (
-                  <div>
-                    <label className={labelCls}>Englischer Name</label>
-                    <input
-                      type="text"
-                      value={nameEnglish}
-                      onChange={e => setNameEnglish(e.target.value)}
-                      placeholder="z.B. No Game, No Life"
-                      className={inputCls}
-                    />
-                  </div>
-                )}
-
-                {/* Volume number */}
-                <div>
-                  <label className={labelCls}>Band / Volume</label>
-                  <input
-                    type="text"
-                    value={volumeNumber}
-                    onChange={e => setVolumeNumber(e.target.value)}
-                    placeholder={showAnimeFields ? "z.B. Box 1" : "z.B. 1"}
-                    className={inputCls}
-                  />
-                </div>
-
-                {/* Language */}
-                <div className="relative">
-                  <label className={labelCls}>Sprache</label>
-                  <input
-                    type="text"
-                    value={language}
-                    onChange={e => handleLanguageChange(e.target.value)}
-                    onBlur={() => setTimeout(() => setShowLangSuggestions(false), 150)}
-                    placeholder="z.B. Deutsch"
-                    className={inputCls}
-                  />
-                  {showLangSuggestions && (
-                    <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1">
-                      {langSuggestions.map(lang => (
-                        <li
-                          key={lang}
-                          onMouseDown={() => { setLanguage(lang); setShowLangSuggestions(false); }}
-                          className="px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer"
-                        >
-                          {lang}
-                        </li>
-                      ))}
-                    </ul>
+                      {/* is_explicit — editable only when title is not locked */}
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="is_explicit"
+                          checked={isExplicit}
+                          onChange={e => setIsExplicit(e.target.checked)}
+                          className="w-4 h-4"
+                        />
+                        <label htmlFor="is_explicit" className="text-sm text-gray-700">
+                          Explicit
+                        </label>
+                      </div>
+                    </>
                   )}
-                </div>
 
-                {/* Auflage */}
-                <div>
-                  <label className={labelCls}>Auflage</label>
-                  <input
-                    type="text"
-                    value={edition}
-                    onChange={e => setEdition(e.target.value)}
-                    placeholder="z.B. 2"
-                    className={inputCls}
-                  />
-                </div>
+                  {/* ── ITEM SECTION ── */}
 
-                {/* Book-specific fields */}
-                {showBookFields && (
-                  <>
+                  {/* Item name (native) */}
+                  <div>
+                    <label className={labelReqCls}>Item Name</label>
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={e => setName(e.target.value)}
+                      placeholder="z.B. ノーゲーム・ノーライフ"
+                      className={inputCls}
+                    />
+                  </div>
+
+                  {/* Romaji — only shown when language is Japanese */}
+                  {isJapanese && (
                     <div>
-                      <label className={labelCls}>Autor</label>
-                      <input type="text" value={author} onChange={e => setAuthor(e.target.value)} className={inputCls} />
-                    </div>
-                    <div>
-                      <label className={labelCls}>Verlag</label>
-                      <input type="text" value={publisher} onChange={e => setPublisher(e.target.value)} className={inputCls} />
-                    </div>
-                    <div>
-                      <label className={labelCls}>Erscheinungsdatum</label>
-                      <input type="text" value={publishDate} onChange={e => setPublishDate(e.target.value)} placeholder="z.B. 2014-10-21" className={inputCls} />
-                    </div>
-                    <div>
-                      <label className={labelCls}>Seitenanzahl</label>
+                      <label className={labelCls}>Romaji Name</label>
                       <input
-                        type="number"
-                        value={pageCount ?? ""}
-                        onChange={e => setPageCount(e.target.value ? parseInt(e.target.value) : null)}
-                        placeholder="z.B. 192"
+                        type="text"
+                        value={nameRomaji}
+                        onChange={e => setNameRomaji(e.target.value)}
+                        placeholder="z.B. No Game No Life"
                         className={inputCls}
                       />
                     </div>
-                    <div>
-                      <label className={labelCls}>ISBN-13</label>
-                      <input type="text" value={isbn13} onChange={e => setIsbn13(e.target.value)} className={inputCls} />
-                    </div>
-                    <div>
-                      <label className={labelCls}>ISBN-10</label>
-                      <input type="text" value={isbn10} onChange={e => setIsbn10(e.target.value)} className={inputCls} />
-                    </div>
-                  </>
-                )}
-
-                {/* Anime-specific fields */}
-                {showAnimeFields && (
-                  <div>
-                    <label className={labelCls}>EAN</label>
-                    <input type="text" value={ean} onChange={e => setEan(e.target.value)} className={inputCls} />
-                  </div>
-                )}
-
-                {/* Sonstiges fields */}
-                {showSonstigesFields && (
-                  <>
-                    <div>
-                      <label className={labelCls}>ISBN-13</label>
-                      <input type="text" value={isbn13} onChange={e => setIsbn13(e.target.value)} className={inputCls} />
-                    </div>
-                    <div>
-                      <label className={labelCls}>ISBN-10</label>
-                      <input type="text" value={isbn10} onChange={e => setIsbn10(e.target.value)} className={inputCls} />
-                    </div>
-                  </>
-                )}
-
-                {/* External ID */}
-                <div>
-                  <label className={labelCls}>Externe ID</label>
-                  <input
-                    type="text"
-                    value={externalId}
-                    onChange={e => setExternalId(e.target.value)}
-                    placeholder="z.B. AniList ID, Google Books ID"
-                    className={inputCls}
-                  />
-                </div>
-
-                {/* Cover image URL */}
-                <div>
-                  <label className={labelCls}>Cover URL</label>
-                  <input
-                    type="text"
-                    value={coverImageUrl}
-                    onChange={e => setCoverImageUrl(e.target.value)}
-                    placeholder="https://..."
-                    className={inputCls}
-                  />
-                  {coverImageUrl && (
-                    <img
-                      src={coverImageUrl}
-                      alt="Cover preview"
-                      className="mt-2 h-24 object-cover rounded"
-                      onError={e => (e.currentTarget.style.display = "none")}
-                    />
                   )}
-                </div>
 
-                {/* Tags + Genres (only for non-locked titles) */}
-                {!titleIsLocked && (
-                  <>
-                    <TagsGenresInput
-                      label="Tags"
-                      value={mediaTags}
-                      onChange={setMediaTags}
-                      fetchSuggestions={fetchMediaTagSuggestions}
+                  {/* English name — only shown when language is not English */}
+                  {!isEnglish && (
+                    <div>
+                      <label className={labelCls}>Englischer Name</label>
+                      <input
+                        type="text"
+                        value={nameEnglish}
+                        onChange={e => setNameEnglish(e.target.value)}
+                        placeholder="z.B. No Game, No Life"
+                        className={inputCls}
+                      />
+                    </div>
+                  )}
+
+                  {/* Volume number */}
+                  <div>
+                    <label className={labelCls}>Band / Volume</label>
+                    <input
+                      type="text"
+                      value={volumeNumber}
+                      onChange={e => setVolumeNumber(e.target.value)}
+                      placeholder={showAnimeFields ? "z.B. Box 1" : "z.B. 1"}
+                      className={inputCls}
                     />
-                    <TagsGenresInput
-                      label="Genres"
-                      value={mediaGenres}
-                      onChange={setMediaGenres}
-                      fetchSuggestions={fetchMediaGenreSuggestions}
+                  </div>
+
+                  {/* Language */}
+                  <div className="relative">
+                    <label className={labelCls}>Sprache</label>
+                    <input
+                      type="text"
+                      value={language}
+                      onChange={e => handleLanguageChange(e.target.value)}
+                      onBlur={() => setTimeout(() => setShowLangSuggestions(false), 150)}
+                      placeholder="z.B. Deutsch"
+                      className={inputCls}
                     />
-                  </>
-                )}
+                    {showLangSuggestions && (
+                      <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1">
+                        {langSuggestions.map(lang => (
+                          <li
+                            key={lang}
+                            onMouseDown={() => { setLanguage(lang); setShowLangSuggestions(false); }}
+                            className="px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer"
+                          >
+                            {lang}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
 
-                {/* Form error */}
-                {formError && (
-                  <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
-                    {formError}
-                  </p>
-                )}
+                  {/* Auflage */}
+                  <div>
+                    <label className={labelCls}>Auflage</label>
+                    <input
+                      type="text"
+                      value={edition}
+                      onChange={e => setEdition(e.target.value)}
+                      placeholder="z.B. 2"
+                      className={inputCls}
+                    />
+                  </div>
 
-                {/* Submit */}
-                <button
-                  type="button"
-                  onClick={handleSubmit}
-                  disabled={loading}
-                  className="w-full py-3 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {loading ? "Wird gespeichert..." : "Speichern"}
-                </button>
-              </>
-            )}
-          </div>
-        </Dialog.Content>
+                  {/* Book-specific fields */}
+                  {showBookFields && (
+                    <>
+                      <div>
+                        <label className={labelCls}>Autor</label>
+                        <input type="text" value={author} onChange={e => setAuthor(e.target.value)} className={inputCls} />
+                      </div>
+                      <div>
+                        <label className={labelCls}>Verlag</label>
+                        <input type="text" value={publisher} onChange={e => setPublisher(e.target.value)} className={inputCls} />
+                      </div>
+                      <div>
+                        <label className={labelCls}>Erscheinungsdatum</label>
+                        <input type="text" value={publishDate} onChange={e => setPublishDate(e.target.value)} placeholder="z.B. 2014-10-21" className={inputCls} />
+                      </div>
+                      <div>
+                        <label className={labelCls}>Seitenanzahl</label>
+                        <input
+                          type="number"
+                          value={pageCount ?? ""}
+                          onChange={e => setPageCount(e.target.value ? parseInt(e.target.value) : null)}
+                          placeholder="z.B. 192"
+                          className={inputCls}
+                        />
+                      </div>
+                      <div>
+                        <label className={labelCls}>ISBN-13</label>
+                        <input type="text" value={isbn13} onChange={e => setIsbn13(e.target.value)} className={inputCls} />
+                      </div>
+                      <div>
+                        <label className={labelCls}>ISBN-10</label>
+                        <input type="text" value={isbn10} onChange={e => setIsbn10(e.target.value)} className={inputCls} />
+                      </div>
+                    </>
+                  )}
+
+                  {/* Anime-specific fields */}
+                  {showAnimeFields && (
+                    <div>
+                      <label className={labelCls}>EAN</label>
+                      <input type="text" value={ean} onChange={e => setEan(e.target.value)} className={inputCls} />
+                    </div>
+                  )}
+
+                  {/* Sonstiges fields */}
+                  {showSonstigesFields && (
+                    <>
+                      <div>
+                        <label className={labelCls}>ISBN-13</label>
+                        <input type="text" value={isbn13} onChange={e => setIsbn13(e.target.value)} className={inputCls} />
+                      </div>
+                      <div>
+                        <label className={labelCls}>ISBN-10</label>
+                        <input type="text" value={isbn10} onChange={e => setIsbn10(e.target.value)} className={inputCls} />
+                      </div>
+                    </>
+                  )}
+
+                  {/* External ID */}
+                  <div>
+                    <label className={labelCls}>Externe ID</label>
+                    <input
+                      type="text"
+                      value={externalId}
+                      onChange={e => setExternalId(e.target.value)}
+                      placeholder="z.B. AniList ID, Google Books ID"
+                      className={inputCls}
+                    />
+                  </div>
+
+                  {/* Cover image URL */}
+                  <div>
+                    <label className={labelCls}>Cover URL</label>
+                    <input
+                      type="text"
+                      value={coverImageUrl}
+                      onChange={e => setCoverImageUrl(e.target.value)}
+                      placeholder="https://..."
+                      className={inputCls}
+                    />
+                    {coverImageUrl && (
+                      <img
+                        src={coverImageUrl}
+                        alt="Cover preview"
+                        className="mt-2 h-24 object-cover rounded"
+                        onError={e => (e.currentTarget.style.display = "none")}
+                      />
+                    )}
+                  </div>
+
+                  {/* Tags + Genres (only for non-locked titles) */}
+                  {!titleIsLocked && (
+                    <>
+                      <TagsGenresInput
+                        label="Tags"
+                        value={mediaTags}
+                        onChange={setMediaTags}
+                        fetchSuggestions={fetchMediaTagSuggestions}
+                      />
+                      <TagsGenresInput
+                        label="Genres"
+                        value={mediaGenres}
+                        onChange={setMediaGenres}
+                        fetchSuggestions={fetchMediaGenreSuggestions}
+                      />
+                    </>
+                  )}
+
+                  {/* Form error */}
+                  {formError && (
+                    <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
+                      {formError}
+                    </p>
+                  )}
+
+                  {/* Submit */}
+                  <button
+                    type="button"
+                    onClick={handleSubmit}
+                    disabled={loading}
+                    className="w-full py-3 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {loading ? "Wird gespeichert..." : "Speichern"}
+                  </button>
+                </>
+              )}
+            </div>
+          </Dialog.Content>
+        </div>
       </Dialog.Portal>
     </Dialog.Root>
   );

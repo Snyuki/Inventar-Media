@@ -65,7 +65,7 @@ export default function BarcodeScanner({ onResult, onSkip }: Props) {
   }, []);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 w-full max-w-[37.5rem] mx-auto">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
           <Camera className="w-4 h-4" />

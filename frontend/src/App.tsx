@@ -43,6 +43,14 @@ useEffect(() => {
     setUserCtx(null);
   };
 
+  const handleReturnToLoginScreen = () => {
+    setUserCtx(null);
+
+    // These are not neccessarily needed but here just in case since they dont hurt
+    setAuthToken(null);
+    setSession(null);
+  }
+
   const handleContinueAsGuest = () => {
     setAuthToken(null);
     setUserCtx({ role: "guest", email: null });
@@ -64,6 +72,7 @@ useEffect(() => {
     <MediaView
       userCtx={userCtx ?? { role: "guest", email: null }}
       onLogout={session ? handleLogout : undefined}
+      onBackToLogin={handleReturnToLoginScreen}
     />
   );
 }

@@ -6,6 +6,7 @@ import { memo } from "react";
 interface Props {
   userCtx: UserContext;
   onLogout?: () => void;
+  onBackToLogin?: () => void;
 }
 
 const MemoTitlesView = memo(TitlesView, (prev, next) => 
@@ -13,7 +14,7 @@ const MemoTitlesView = memo(TitlesView, (prev, next) =>
   prev.userCtx.email === next.userCtx.email
 );
 
-export default function MediaView({ userCtx, onLogout }: Props) {
+export default function MediaView({ userCtx, onLogout, onBackToLogin }: Props) {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
 
@@ -38,6 +39,15 @@ export default function MediaView({ userCtx, onLogout }: Props) {
                   onClick={onLogout}
                   className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                   title="Logout"
+                >
+                  <LogOut className="w-5 h-5" />
+                </button>
+              )}
+              {!onLogout && userCtx.role === "guest" && (
+                <button
+                  onClick={onBackToLogin}
+                  className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  title="Back to Login"
                 >
                   <LogOut className="w-5 h-5" />
                 </button>
