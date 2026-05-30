@@ -65,6 +65,8 @@ items_table = sqlalchemy.Table(
     sqlalchemy.Column("id",              sqlalchemy.dialects.postgresql.UUID(as_uuid=False), primary_key=True),
     sqlalchemy.Column("title_id",        sqlalchemy.dialects.postgresql.UUID(as_uuid=False), sqlalchemy.ForeignKey("titles.id"), nullable=False),
     sqlalchemy.Column("name",            sqlalchemy.String, nullable=False),
+    sqlalchemy.Column("name_romaji",     sqlalchemy.String, nullable=True),
+    sqlalchemy.Column("name_english",    sqlalchemy.String, nullable=True), 
     sqlalchemy.Column("volume_number",   sqlalchemy.String, nullable=True),
     sqlalchemy.Column("language",        sqlalchemy.String, nullable=True),
     sqlalchemy.Column("edition",         sqlalchemy.String, nullable=True),
@@ -88,6 +90,7 @@ items_manga_table = sqlalchemy.Table(
     sqlalchemy.Column("publisher",    sqlalchemy.String, nullable=True),
     sqlalchemy.Column("author",       sqlalchemy.String, nullable=True),
     sqlalchemy.Column("publish_date", sqlalchemy.String, nullable=True),
+    sqlalchemy.Column("page_count", sqlalchemy.Integer, nullable=True),
 )
  
 items_light_novel_table = sqlalchemy.Table(
@@ -98,6 +101,7 @@ items_light_novel_table = sqlalchemy.Table(
     sqlalchemy.Column("publisher",    sqlalchemy.String, nullable=True),
     sqlalchemy.Column("author",       sqlalchemy.String, nullable=True),
     sqlalchemy.Column("publish_date", sqlalchemy.String, nullable=True),
+    sqlalchemy.Column("page_count", sqlalchemy.Integer, nullable=True),
 )
  
 items_novel_table = sqlalchemy.Table(
@@ -108,6 +112,7 @@ items_novel_table = sqlalchemy.Table(
     sqlalchemy.Column("publisher",    sqlalchemy.String, nullable=True),
     sqlalchemy.Column("author",       sqlalchemy.String, nullable=True),
     sqlalchemy.Column("publish_date", sqlalchemy.String, nullable=True),
+    sqlalchemy.Column("page_count", sqlalchemy.Integer, nullable=True),
 )
  
 items_art_book_table = sqlalchemy.Table(
@@ -118,6 +123,7 @@ items_art_book_table = sqlalchemy.Table(
     sqlalchemy.Column("publisher",    sqlalchemy.String, nullable=True),
     sqlalchemy.Column("author",       sqlalchemy.String, nullable=True),
     sqlalchemy.Column("publish_date", sqlalchemy.String, nullable=True),
+    sqlalchemy.Column("page_count", sqlalchemy.Integer, nullable=True),
 )
  
 items_anime_table = sqlalchemy.Table(
@@ -176,12 +182,8 @@ TAG_TO_DETAIL_TABLE: dict[str, sqlalchemy.Table] = {
     "Sonstiges":    items_sonstiges_table,
 }
  
-sync_url = DATABASE_URL.replace("+asyncpg", "")
-engine = sqlalchemy.create_engine(sync_url)
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    metadata.create_all(engine)
     await database.connect()
     yield
     await database.disconnect()
