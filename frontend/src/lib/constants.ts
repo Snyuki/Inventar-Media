@@ -110,3 +110,16 @@ export const APPLY_SERIES_COUNT_TAGS = ["Manga", "Light Novel", "Novel"];
  * Tags where status applies.
  */
 export const APPLY_STATUS_TAGS = ["Manga", "Light Novel", "Novel", "Anime"];
+
+/**
+ * Strips a suffix from a title/item name
+ * 
+ * @param name The title/item name where to strip the suffix from
+ * @returns The stripped title
+ */
+export function stripVolumeSuffix(name: string): string {
+  return name
+    .replace(/\s+(Vol\.?|Volume|Band|Bd\.?|#|Tome|Book|Part|Episode|Box)\s*\d+.*$/i, "")
+    .replace(/\s+\d+$/, "")
+    .trim();
+}

@@ -87,6 +87,7 @@ export interface LookupResult {
   cover_image_url: string | null;
   isbn_10:         string | null;
   isbn_13:         string | null;
+  language:        string | null;
   ean:             string | null;
   page_count:      number | null;
   // Title metadata fields

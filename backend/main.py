@@ -452,6 +452,7 @@ class LookupResult(BaseModel):
     cover_image_url: Optional[str] = None
     isbn_10:         Optional[str] = None
     isbn_13:         Optional[str] = None
+    language:        Optional[str] = None
     ean:             Optional[str] = None
     page_count:      Optional[int] = None
     # Title metadata fields
@@ -677,7 +678,9 @@ async def lookup_google_books(code: str, client: httpx.AsyncClient) -> Optional[
             "cover_image_url": volume.get("imageLinks", {}).get("thumbnail"),
             "isbn_10":         isbn_10,
             "isbn_13":         isbn_13,
+            "language":        volume.get("language"),
             "from_api":        constants.From_Api.GOOGLE_BOOKS.value,
+            "page_count":      volume.get("pageCount"),
         }
     except Exception as e:
         print(f"Google Books lookup error: {e}")
@@ -1219,6 +1222,7 @@ async def lookup_barcode(
         "cover_image_url": None,
         "title_cover_image_url": None,  # series-level, separate from item cover
         "isbn_10": None, "isbn_13": None,
+        "language": None, 
         "page_count": None,
         "volume_count": None, "chapter_count": None,
         "status": None, "anilist_id": None,

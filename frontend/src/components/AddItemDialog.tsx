@@ -12,7 +12,7 @@ import {
   anilistSearch,
 } from "../lib/api";
 import { Tag, Title, LookupResult } from "../types";
-import { BOOK_TAGS, resolveLanguageCode } from "../lib/constants";
+import { BOOK_TAGS, resolveLanguageCode, stripVolumeSuffix } from "../lib/constants";
 
 interface Props {
   open: boolean;
@@ -251,7 +251,16 @@ export default function AddItemDialog({
 
   // ---- Prefill from lookup result ------------------------------------------
   const prefillFromLookup = (result: Partial<LookupResult>) => {
-    if (result.name)                 setName(result.name);
+    if (result.name) {
+      let strippedTitle = stripVolumeSuffix(result.name);
+      setName((strippedTitle ? strippedTitle : result.name));
+      if (!lockedTitle && result.name) {
+        setTitleQuery((strippedTitle ? strippedTitle : result.name));
+      }
+      // Try to extract volume number from the name
+      const volMatch = result.name.match(/(\d+)$/);
+      if (volMatch) setVolumeNumber(volMatch[1]);
+    }
     if (result.name_romaji)          setNameRomaji(result.name_romaji);
     if (result.name_english)         setNameEnglish(result.name_english);
     if (result.author)               setAuthor(result.author);
@@ -260,6 +269,8 @@ export default function AddItemDialog({
     if (result.cover_image_url)      setCoverImageUrl(result.cover_image_url);
     if (result.isbn_10)              setIsbn10(result.isbn_10);
     if (result.isbn_13)              setIsbn13(result.isbn_13);
+    if (result.language)             setLanguage(resolveLanguageCode(result.language));
+    if (result.page_count)           setPageCount(result.page_count);
     if (result.ean)                  setEan(result.ean);
     if (result.page_count)           setPageCount(result.page_count);
     if (result.title_cover_image_url) setTitleCoverImageUrl(result.title_cover_image_url);
