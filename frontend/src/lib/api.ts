@@ -118,6 +118,15 @@ export async function createTitle(body: {
   return mapTitle(data);
 }
 
+export async function deleteTitle(titleId: string): Promise<void> {
+  const res = await fetch(`${BASE_URL}/titles/${titleId}`, {
+    method: "DELETE",
+    headers: await headers(true),
+  });
+  await handleResponse(res);
+}
+ 
+
 // ---------------------------------------------------------------------------
 // Items
 // ---------------------------------------------------------------------------

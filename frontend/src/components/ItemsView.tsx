@@ -5,11 +5,13 @@ import { fetchItems } from "../lib/api";
 import { Item, Title, UserContext } from "../types";
 import { TAG_COLORS, TAG_COLOR_FALLBACK } from "../lib/constants";
 import AddItemDialog from "./AddItemDialog";
+import TitleContextMenu from "./TitleContextMenu";
 
 interface Props {
   title: Title;
   userCtx: UserContext;
   onBack: () => void;
+  onTitleDeleted: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -152,7 +154,7 @@ function buildGroups(items: Item[]): LanguageGroup[] {
 // Main component
 // ---------------------------------------------------------------------------
 
-export default function ItemsView({ title, userCtx, onBack }: Props) {
+export default function ItemsView({ title, userCtx, onBack, onTitleDeleted }: Props) {
   const [items, setItems]     = useState<Item[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState<string | null>(null);
@@ -202,6 +204,13 @@ export default function ItemsView({ title, userCtx, onBack }: Props) {
           >
             <Plus className="w-4 h-4" /> Add
           </button>
+        )}
+        {userCtx.role === "admin" && (
+          <TitleContextMenu
+            title={title}
+            itemCount={items.length}
+            onDeleted={onTitleDeleted}  // go back to titles list after delete
+          />
         )}
       </div>
 

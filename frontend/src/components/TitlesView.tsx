@@ -5,6 +5,7 @@ import { Tag, Title, UserContext } from "../types";
 import { TAG_COLORS, TAG_COLOR_FALLBACK } from "../lib/constants";
 import ItemsView from "./ItemsView";
 import AddItemDialog from "./AddItemDialog";
+import TitleContextMenu from "./TitleContextMenu";
 
 interface Props {
   userCtx: UserContext;
@@ -76,6 +77,10 @@ export default function TitlesView({ userCtx }: Props) {
         title={selectedTitle}
         userCtx={userCtx}
         onBack={() => setSelectedTitle(null)}
+        onTitleDeleted={() => {
+          setSelectedTitle(null);
+          fetchTitles().then(setTitles);
+        }}
       />
     );
   }
@@ -143,9 +148,18 @@ export default function TitlesView({ userCtx }: Props) {
             <button
               key={title.id}
               className="w-full text-left"
-              onClick={() => setSelectedTitle(title)}
+              onClick={(e) => {
+                // Don't navigate if clicking inside the context menu
+                if ((e.target as HTMLElement).closest('[data-context-menu]')) return;
+                setSelectedTitle(title);
+              }}
             >
-              <TitleCard title={title} tagColor={tagColor(title.tag.name)} />
+              <TitleCard
+                title={title}
+                tagColor={tagColor(title.tag.name)}
+                userCtx={userCtx}
+                onDeleted={() => fetchTitles().then(setTitles)}
+              />
             </button>
           ))}
         </div>
@@ -167,11 +181,13 @@ export default function TitlesView({ userCtx }: Props) {
 interface TitleCardProps {
   title: Title;
   tagColor: string;
+  userCtx: UserContext;
+  onDeleted: () => void;
 }
 
-function TitleCard({ title, tagColor }: TitleCardProps) {
+function TitleCard({ title, tagColor, userCtx, onDeleted }: TitleCardProps) {
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden flex">
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 flex">
 
       {/* Colored left border indicating tag */}
       <div className="w-1 flex-shrink-0" style={{ backgroundColor: tagColor }} />
@@ -205,6 +221,14 @@ function TitleCard({ title, tagColor }: TitleCardProps) {
               )}
             </span>
           </div>
+          {
+            userCtx.role === "admin" && (
+              <TitleContextMenu
+                title={title}
+                onDeleted={onDeleted}
+              />
+            )
+          }
         </div>
       </div>
     </div>

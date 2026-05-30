@@ -348,14 +348,24 @@ class TagOut(BaseModel):
     id: str
     name: str
  
+
+class TitleMetadataOut(BaseModel):
+    volume_count:    Optional[int] = None
+    chapter_count:   Optional[int] = None
+    status:          Optional[str] = None
+    anilist_id:      Optional[int] = None
+    cover_image_url: Optional[str] = None
  
+
 class TitleOut(BaseModel):
-    id: str
-    name: str
-    tag: TagOut
+    id:          str
+    name:        str
+    tag:         TagOut
     is_explicit: bool
-    external_id: Optional[str]
-    created_at: str
+    created_at:  str
+    metadata:    Optional[TitleMetadataOut] = None
+    media_tags:  list[str] = []
+    media_genres: list[str] = []
  
  
 class TitleIn(BaseModel):
@@ -544,6 +554,28 @@ async def fetch_item_with_detail(item_id: str, tag_name: str) -> ItemOut:
         ean=detail_row["ean"] if detail_row and "ean" in detail_row.keys() else None,
         external_ids=external_ids,
     )
+
+
+async def fetch_media_tags(title_id: str) -> list[str]:
+    rows = await database.fetch_all("""
+        SELECT mt.name
+        FROM title_media_tags tmt
+        JOIN media_tags mt ON mt.id = tmt.tag_id
+        WHERE tmt.title_id = :title_id
+        ORDER BY mt.name ASC
+    """, values={"title_id": title_id})
+    return [r["name"] for r in rows]
+
+
+async def fetch_media_genres(title_id: str) -> list[str]:
+    rows = await database.fetch_all("""
+        SELECT mg.name
+        FROM title_media_genres tmg
+        JOIN media_genres mg ON mg.id = tmg.genre_id
+        WHERE tmg.title_id = :title_id
+        ORDER BY mg.name ASC
+    """, values={"title_id": title_id})
+    return [r["name"] for r in rows]
 
 
 async def upsert_title_metadata(
@@ -895,12 +927,17 @@ async def list_titles(user: UserContext = Depends(get_optional_user)):
             t.id,
             t.name,
             t.is_explicit,
-            t.external_id,
             t.created_at,
             tg.id   AS tag_id,
-            tg.name AS tag_name
+            tg.name AS tag_name,
+            tm.volume_count,
+            tm.chapter_count,
+            tm.status,
+            tm.anilist_id,
+            tm.cover_image_url AS metadata_cover
         FROM titles t
         JOIN tags tg ON tg.id = t.tag_id
+        LEFT JOIN title_metadata tm ON tm.title_id = t.id
         WHERE (:see_explicit = TRUE OR t.is_explicit = FALSE)
         ORDER BY t.name ASC
     """
@@ -911,8 +948,16 @@ async def list_titles(user: UserContext = Depends(get_optional_user)):
             name=r["name"],
             tag=TagOut(id=str(r["tag_id"]), name=r["tag_name"]),
             is_explicit=r["is_explicit"],
-            external_id=r["external_id"],
             created_at=str(r["created_at"]),
+            metadata=TitleMetadataOut(
+                volume_count=r["volume_count"],
+                chapter_count=r["chapter_count"],
+                status=r["status"],
+                anilist_id=r["anilist_id"],
+                cover_image_url=r["metadata_cover"],
+            ) if any([r["volume_count"], r["chapter_count"], r["status"], r["anilist_id"], r["metadata_cover"]]) else None,
+            media_tags=await fetch_media_tags(str(r["id"])),
+            media_genres=await fetch_media_genres(str(r["id"])),
         )
         for r in rows
     ]
@@ -929,27 +974,40 @@ async def get_title(title_id: str, user: UserContext = Depends(get_optional_user
             t.id,
             t.name,
             t.is_explicit,
-            t.external_id,
             t.created_at,
             tg.id   AS tag_id,
-            tg.name AS tag_name
+            tg.name AS tag_name,
+            tm.volume_count,
+            tm.chapter_count,
+            tm.status,
+            tm.anilist_id,
+            tm.cover_image_url AS metadata_cover
         FROM titles t
         JOIN tags tg ON tg.id = t.tag_id
+        LEFT JOIN title_metadata tm ON tm.title_id = t.id
         WHERE t.id = :title_id
           AND (:see_explicit = TRUE OR t.is_explicit = FALSE)
     """, values={"title_id": title_id, "see_explicit": user.can_see_explicit})
 
     if not row:
         raise HTTPException(status_code=404, detail="Title not found")
-
+    
     return TitleOut(
-        id=str(row["id"]),
-        name=row["name"],
-        tag=TagOut(id=str(row["tag_id"]), name=row["tag_name"]),
-        is_explicit=row["is_explicit"],
-        external_id=row["external_id"],
-        created_at=str(row["created_at"]),
-    )
+                id=str(row["id"]),
+                name=row["name"],
+                tag=TagOut(id=str(row["tag_id"]), name=row["tag_name"]),
+                is_explicit=row["is_explicit"],
+                created_at=str(row["created_at"]),
+                metadata=TitleMetadataOut(
+                    volume_count=row["volume_count"],
+                    chapter_count=row["chapter_count"],
+                    status=row["status"],
+                    anilist_id=row["anilist_id"],
+                    cover_image_url=row["metadata_cover"],
+                ) if any([row["volume_count"], row["chapter_count"], row["status"], row["anilist_id"], row["metadata_cover"]]) else None,
+                media_tags=await fetch_media_tags(str(row["id"])),
+                media_genres=await fetch_media_genres(str(row["id"])),
+            )
  
  
 @app.post("/api/titles", response_model=TitleOut, status_code=201)
@@ -968,7 +1026,6 @@ async def create_title(body: TitleIn, user: UserContext = Depends(get_current_us
             name=body.name,
             tag_id=body.tag_id,
             is_explicit=body.is_explicit,
-            external_id=body.external_id,
         )
     )
  
