@@ -81,7 +81,8 @@ CREATE TABLE IF NOT EXISTS title_metadata (
     chapter_count   INTEGER,
     status          TEXT,
     anilist_id      INTEGER,
-    cover_image_url TEXT
+    cover_image_url TEXT,
+    name_romaji     TEXT
 );
 
 COMMENT ON TABLE title_metadata IS

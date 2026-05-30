@@ -212,6 +212,11 @@ function TitleCard({ title, tagColor, userCtx, onDeleted }: TitleCardProps) {
             <h2 className="font-medium text-gray-900 text-sm leading-tight truncate">
               {title.name}
             </h2>
+            {title.metadata?.nameRomaji && (
+              <p className="text-xs text-gray-400 truncate">
+                {title.metadata.nameRomaji}
+              </p>
+            )}
             <span className="text-xs text-gray-400 mt-0.5 block">
               {title.tag.name}
               {title.isExplicit && (

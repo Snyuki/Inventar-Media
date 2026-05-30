@@ -148,6 +148,7 @@ title_metadata_table = sqlalchemy.Table(
     sqlalchemy.Column("status",        sqlalchemy.String, nullable=True),
     sqlalchemy.Column("anilist_id",    sqlalchemy.Integer, nullable=True),
     sqlalchemy.Column("cover_image_url", sqlalchemy.String, nullable=True),  
+    sqlalchemy.Column("name_romaji",     sqlalchemy.String, nullable=True),
 )
  
 media_tags_table = sqlalchemy.Table(
@@ -357,6 +358,7 @@ class TitleMetadataOut(BaseModel):
     status:          Optional[str] = None
     anilist_id:      Optional[int] = None
     cover_image_url: Optional[str] = None
+    name_romaji:     Optional[str] = None
  
 
 class TitleOut(BaseModel):
@@ -588,6 +590,7 @@ async def upsert_title_metadata(
     status: Optional[str],
     anilist_id: Optional[int],
     cover_image_url: Optional[str] = None,
+    name_romaji: Optional[str] = None,
 ):
     """Upserts title_metadata for a title. Only updates non-None fields."""
     existing = await database.fetch_one(
@@ -601,6 +604,7 @@ async def upsert_title_metadata(
         "status":          status,
         "anilist_id":      anilist_id,
         "cover_image_url": cover_image_url,
+        "name_romaji":     name_romaji if (existing is None or not existing["name_romaji"]) else None,
     }.items() if v is not None}
  
     if not values:
@@ -1076,7 +1080,8 @@ async def list_titles(user: UserContext = Depends(get_optional_user)):
             tm.chapter_count,
             tm.status,
             tm.anilist_id,
-            tm.cover_image_url AS metadata_cover
+            tm.cover_image_url AS metadata_cover,
+            tm.name_romaji
         FROM titles t
         JOIN tags tg ON tg.id = t.tag_id
         LEFT JOIN title_metadata tm ON tm.title_id = t.id
@@ -1097,7 +1102,8 @@ async def list_titles(user: UserContext = Depends(get_optional_user)):
                 status=r["status"],
                 anilist_id=r["anilist_id"],
                 cover_image_url=r["metadata_cover"],
-            ) if any([r["volume_count"], r["chapter_count"], r["status"], r["anilist_id"], r["metadata_cover"]]) else None,
+                name_romaji=r["name_romaji"],
+            ) if any([r["volume_count"], r["chapter_count"], r["status"], r["anilist_id"], r["metadata_cover"], r["name_romaji"]]) else None,
             media_tags=await fetch_media_tags(str(r["id"])),
             media_genres=await fetch_media_genres(str(r["id"])),
         )
@@ -1123,7 +1129,8 @@ async def get_title(title_id: str, user: UserContext = Depends(get_optional_user
             tm.chapter_count,
             tm.status,
             tm.anilist_id,
-            tm.cover_image_url AS metadata_cover
+            tm.cover_image_url AS metadata_cover,
+            tm.name_romaji
         FROM titles t
         JOIN tags tg ON tg.id = t.tag_id
         LEFT JOIN title_metadata tm ON tm.title_id = t.id
@@ -1146,7 +1153,8 @@ async def get_title(title_id: str, user: UserContext = Depends(get_optional_user
                     status=row["status"],
                     anilist_id=row["anilist_id"],
                     cover_image_url=row["metadata_cover"],
-                ) if any([row["volume_count"], row["chapter_count"], row["status"], row["anilist_id"], row["metadata_cover"]]) else None,
+                    name_romaji=row["name_romaji"],
+                ) if any([row["volume_count"], row["chapter_count"], row["status"], row["anilist_id"], row["metadata_cover"], row["name_romaji"]]) else None,
                 media_tags=await fetch_media_tags(str(row["id"])),
                 media_genres=await fetch_media_genres(str(row["id"])),
             )
@@ -1320,6 +1328,16 @@ async def create_item(
  
     # Upsert external IDs
     await upsert_item_external_ids(iid, body.external_ids)
+
+    if body.name_romaji:
+        await upsert_title_metadata(
+            title_id,
+            volume_count=None,
+            chapter_count=None,
+            status=None,
+            anilist_id=None,
+            name_romaji=body.name_romaji,
+        )
  
     # Register language if new
     if body.language:

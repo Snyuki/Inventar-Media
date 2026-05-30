@@ -60,14 +60,16 @@ export default function TitleContextMenu({ title, itemCount, onDeleted }: Props)
     <>
       {/* Three-dot button + dropdown */}
       <div ref={menuRef} className="relative flex-shrink-0" data-context-menu>
-        <button
-          type="button"
+        <div
+          role="button"
+          tabIndex={0}
           onClick={e => { e.stopPropagation(); setMenuOpen(v => !v); }}
-          className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+          onKeyDown={e => e.key === "Enter" && setMenuOpen(v => !v)}
+          className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
           title="Optionen"
         >
           <MoreVertical className="w-4 h-4" />
-        </button>
+        </div>
 
         {menuOpen && (
           <div className="absolute right-0 top-8 z-30 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[140px] py-1">

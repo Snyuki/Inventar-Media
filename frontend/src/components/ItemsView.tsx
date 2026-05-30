@@ -189,6 +189,12 @@ export default function ItemsView({ title, userCtx, onBack, onTitleDeleted }: Pr
           <div className="w-1 h-8 rounded-full flex-shrink-0" style={{ backgroundColor: tagColor }} />
           <div className="min-w-0">
             <h1 className="text-lg font-bold text-gray-900 truncate">{title.name}</h1>
+            {title.metadata?.nameRomaji && (
+              <span className="text-xs text-gray-400">{title.metadata.nameRomaji}</span>
+            )}
+            {!title.metadata?.nameRomaji && (
+              <span className="text-xs text-gray-400">{title.tag.name}</span>
+            )}
             <span className="text-xs text-gray-400">{title.tag.name}</span>
           </div>
           {title.isExplicit && (
@@ -288,6 +294,11 @@ function LanguageGroupCard({
           <p className="font-medium text-gray-900 text-sm truncate">
             {lg.volumeGroups[0]?.representative.name}
           </p>
+          {lg.volumeGroups[0]?.representative.nameRomaji && (
+            <p className="text-xs text-gray-400 truncate">
+              {lg.volumeGroups[0]?.representative.nameRomaji}
+            </p>
+          )}
           <p className="text-xs text-gray-400 mt-0.5">
             {lg.language ?? "—"}
           </p>
@@ -330,6 +341,11 @@ function VolumeGroupRow({ vg, tagName }: { vg: VolumeGroup; tagName: string }) {
         <ItemCover item={vg.representative} size="sm" />
         <div className="flex-1 min-w-0">
           <p className="text-sm text-gray-900 truncate">{vg.representative.name}</p>
+          {vg.representative.nameRomaji && (
+            <p className="text-xs text-gray-400 truncate">
+              {vg.representative.nameRomaji}
+            </p>
+          )}
           <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
             {vg.volumeNumber && (
               <span className="text-xs text-gray-400">Vol. {vg.volumeNumber}</span>

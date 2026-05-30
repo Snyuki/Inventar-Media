@@ -82,6 +82,7 @@ function mapTitle(t: any): Title {
       status:        t.metadata.status ?? null,
       anilistId:     t.metadata.anilist_id ?? null,
       coverImageUrl: t.metadata.cover_image_url ?? null,
+      nameRomaji:    t.metadata.name_romaji ?? null,
     } : null,
     mediaTags:   t.media_tags ?? [],
     mediaGenres: t.media_genres ?? [],

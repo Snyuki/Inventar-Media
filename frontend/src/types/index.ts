@@ -28,6 +28,7 @@ export interface TitleMetadata {
   status:           string | null;
   anilistId:        number | null;
   coverImageUrl:    string | null; // series-level fallback cover from AniList
+  nameRomaji:       string | null;
 }
 
 export interface Title {
