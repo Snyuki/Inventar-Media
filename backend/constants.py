@@ -27,6 +27,21 @@ URL for the AniList GraphQL endpoint.
 ANILIST_GRAPHQL_URL = "https://graphql.anilist.co"
 
 """
+Rakuten Books Search API base URL.
+"""
+RAKUTEN_BOOKS_BASE_URL = "https://openapi.rakuten.co.jp/services/api/BooksTotal/Search/20170404"
+
+"""
+ISBN prefix for Japanese market publications.
+"""
+ISBN_PREFIX_JAPANESE = "9784"
+ 
+"""
+ISBN prefix for German market publications.
+"""
+ISBN_PREFIX_GERMAN = "9783"
+
+"""
 Guest Role string
 """
 GUEST_ROLE = "guest"
@@ -98,6 +113,7 @@ class From_Api(Enum):
     GOOGLE_BOOKS = "google_books"
     OPEN_LIBRARY = "openlibrary"
     NDL          = "ndl"
+    RAKUTEN      = "rakuten"
     ANILIST      = "anilist"
     NO_API       = "none"
 

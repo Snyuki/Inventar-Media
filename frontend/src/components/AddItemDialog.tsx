@@ -27,6 +27,17 @@ function isBookTag(tagName: string) {
   return BOOK_TAGS.includes(tagName);
 }
 
+function TitleCoverHint({ titleCoverImageUrl, existingCoverImageUrl }: {
+  titleCoverImageUrl: string;
+  existingCoverImageUrl?: string | null;
+}) {
+  if (!titleCoverImageUrl) return null;
+  if (existingCoverImageUrl) {
+    return <p className="text-xs text-gray-400 mt-1">Seriencover bereits vorhanden</p>;
+  }
+  return <p className="text-xs text-blue-600 mt-1">Seriencover wird zum bestehenden Titel hinzugefügt</p>;
+}
+
 // ---------------------------------------------------------------------------
 // Shared input style
 // ---------------------------------------------------------------------------
@@ -281,10 +292,10 @@ export default function AddItemDialog({
       }
 
       if (result.volume_number) {
-        setVolumeNumber(result.volume_number);
+        setVolumeNumber(String(parseInt(result.volume_number, 10)));
       } else {
         const volMatch = result.name.match(/(\d+)$/);
-        if (volMatch) setVolumeNumber(volMatch[1]);
+        if (volMatch) setVolumeNumber(String(parseInt(volMatch[1], 10)));
       }
     }
     if (result.name_romaji)          setNameRomaji(result.name_romaji);
@@ -632,6 +643,10 @@ export default function AddItemDialog({
                         <label htmlFor="is_explicit_locked" className="text-sm text-gray-400">
                           Explicit (vom Titel übernommen)
                         </label>
+                        <TitleCoverHint
+                          titleCoverImageUrl={titleCoverImageUrl}
+                          existingCoverImageUrl={lockedTitle?.metadata?.coverImageUrl}
+                        />
                       </div>
                     </div>
                   ) : (
@@ -688,6 +703,15 @@ export default function AddItemDialog({
                             Neuer Titel wird angelegt: „{titleQuery}"
                           </p>
                         )}
+                        {selectedTitle ? (
+                          <TitleCoverHint
+                            titleCoverImageUrl={titleCoverImageUrl}
+                            existingCoverImageUrl={selectedTitle.metadata?.coverImageUrl}
+                          />
+                        ) : titleCoverImageUrl ? (
+                          <p className="text-xs text-green-600 mt-1">Seriencover wird gespeichert</p>
+                        ) : null}
+                        
                       </div>
 
                       {/* is_explicit — editable only when title is not locked */}

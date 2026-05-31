@@ -5,6 +5,7 @@ import uuid
 from pydantic import BaseModel, field_validator
 import re
 import httpx
+import asyncio
  
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -946,6 +947,69 @@ async def lookup_ndl(code: str, client: httpx.AsyncClient) -> Optional[dict]:
         return None
 
 
+async def lookup_rakuten(code: str, client: httpx.AsyncClient) -> Optional[dict]:
+    """
+    Looks up a book by ISBN via Rakuten Books Total Search API.
+    Best coverage for Japanese publisher ISBNs (978-4).
+    Returns cover image URL, metadata including publisher.
+    Requires RAKUTEN_APP_ID in environment.
+    Fails gracefully if key is missing or invalid.
+    """
+    app_id     = os.getenv("RAKUTEN_APP_ID", "")
+    access_key = os.getenv("RAKUTEN_ACCESS_KEY", "")
+    origin     = os.getenv("RAKUTEN_ORIGIN", "")
+    if not app_id or not access_key or not origin:
+        return None
+ 
+    try:
+        res = await client.get(
+            constants.RAKUTEN_BOOKS_BASE_URL,
+            params={
+                "applicationId":        app_id,
+                "accessKey":            access_key,
+                "isbnjan":              code,
+                "formatVersion":        "2",
+            },
+            timeout=constants.EXTERNAL_API_TIMEOUT_SECONDS,
+            headers={
+                "Origin": origin
+            },
+        )
+        if res.status_code in (401, 403):
+            print(f"Rakuten API key invalid or unauthorized: {res.status_code}")
+            return None
+ 
+        data = res.json()
+        if data.get("error"):
+            print(f"Rakuten API error: {data.get('error')}")
+            return None
+ 
+        items = data.get("Items", [])
+        if not items:
+            return None
+ 
+        item = items[0].get("Item", items[0])
+        item_url = item.get("itemUrl", "")
+        rakuten_id = item_url.rstrip("/").split("/")[-1] if item_url else None
+ 
+        # Prefer largeImageUrl, fall back to mediumImageUrl
+        cover = item.get("largeImageUrl") or item.get("mediumImageUrl") or None
+ 
+        return {
+            "name":            item.get("title"),
+            "author":          item.get("author"),
+            "publisher":       item.get("publisherName"),
+            "publish_date":    item.get("salesDate"),
+            "cover_image_url": cover,
+            "isbn_13":         code if len(code) == 13 else None,
+            "rakuten_item_code": rakuten_id,
+            "from_api":        constants.From_Api.RAKUTEN.value,
+        }
+    except Exception as e:
+        print(f"Rakuten lookup error: {e}")
+        return None
+ 
+
 async def lookup_anilist(
     search: str,
     media_type: str,  # "MANGA" or "ANIME"
@@ -1463,8 +1527,11 @@ async def lookup_barcode(
     _: UserContext = Depends(get_optional_user),
 ):
     """
-    Cascading ISBN/barcode lookup.
-    Order: Google Books → OpenLibrary → AniList
+    Cascading ISBN/barcode lookup with parallel API calls per market.
+    Japanese (978-4): Google Books + Rakuten + NDL in parallel, then AniList
+    German   (978-3): Google Books + OpenLibrary in parallel, then AniList
+    Other           : Google Books + OpenLibrary in parallel, then AniList
+    Results are merged: first non-None value per field wins.
     """
     code = code.strip()
     code_type = detect_code_type(code)
@@ -1489,6 +1556,7 @@ async def lookup_barcode(
         "language": None,
         "google_books_id": None,
         "openlibrary_id": None,
+        "rakuten_item_code": None,
         "volume_number": None,
         "volume_count": None, "chapter_count": None,
         "status": None, "anilist_id": None,
@@ -1524,23 +1592,40 @@ async def lookup_barcode(
             elif key == "openlibrary_id":
                 if merged.get("openlibrary_id") is None and value:
                     merged["openlibrary_id"] = value
+            elif key == "rakuten_item_code":
+                if merged.get("rakuten_item_code") is None and value:
+                    merged["rakuten_item_code"] = value
             elif value is not None and merged.get(key) is None:
                 merged[key] = value
  
+    is_japanese = code.startswith(constants.ISBN_PREFIX_JAPANESE)
+ 
     async with httpx.AsyncClient() as client:
-        gb_result = await lookup_google_books(code, client)
-        if gb_result:
-            merge(gb_result)
  
-        ol_result = await lookup_openlibrary(code, client)
-        if ol_result:
-            merge(ol_result)
-
-        # 3. NDL (National Diet Library) — strong for Japanese publications
-        ndl_result = await lookup_ndl(code, client)
-        if ndl_result:
-            merge(ndl_result)
+        # ---- Phase 1: parallel bibliographic lookups ----
+        if is_japanese:
+            tasks = [
+                lookup_google_books(code, client),
+                lookup_rakuten(code, client),
+                lookup_ndl(code, client),
+            ]
+        else:
+            # German (978-3) and all others: Google Books + OpenLibrary
+            tasks = [
+                lookup_google_books(code, client),
+                lookup_openlibrary(code, client),
+            ]
  
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+ 
+        for result in results:
+            if isinstance(result, Exception):
+                print(f"Lookup task error: {result}")
+                continue
+            if result:
+                merge(result)
+ 
+        # ---- Phase 2: AniList (needs merged name from phase 1) ----
         if merged.get("name"):
             media_type = "ANIME" if suggested_tag == constants.TAG_ANIME else "MANGA"
             al_result = await lookup_anilist(merged["name"], media_type, client)
@@ -1551,6 +1636,7 @@ async def lookup_barcode(
         else:
             merged["anilist_found"] = False
  
+    # Build external_ids list
     external_ids: list[dict] = []
     if merged.get("google_books_id"):
         external_ids.append({
@@ -1562,6 +1648,11 @@ async def lookup_barcode(
             "source":      constants.From_Api.OPEN_LIBRARY.value,
             "external_id": merged["openlibrary_id"],
         })
+    if merged.get("rakuten_item_code"):
+        external_ids.append({
+            "source":      constants.From_Api.RAKUTEN.value,
+            "external_id": merged["rakuten_item_code"],
+        })
     if merged.get("anilist_id"):
         external_ids.append({
             "source":      constants.From_Api.ANILIST.value,
@@ -1572,8 +1663,8 @@ async def lookup_barcode(
         merged["sources_used"] = [constants.From_Api.NO_API.value]
  
     response_merged = {k: v for k, v in merged.items()
-                    if k != "google_books_id"}
-
+                       if k not in ("google_books_id", "openlibrary_id", "rakuten_item_code")}
+ 
     return LookupResult(
         code=code,
         code_type=code_type,
@@ -1581,7 +1672,7 @@ async def lookup_barcode(
         external_ids=external_ids,
         **response_merged,
     )
-
+ 
 
 @app.get("/api/media-tags")
 async def list_media_tags(
