@@ -55,7 +55,7 @@ sleep 1
 if [[ "$MODE" == "ngrok" ]]; then
     (cd backend && source .venv/bin/activate && set -a && source "$BACKEND_ENV" && set +a && uvicorn main:app --reload) &
     echo "Starting ngrok tunnel..."
-    ngrok http --url=https://list-coauthor-extras.ngrok-free.dev 8000
+    ngrok http --url=https://list-coauthor-extras.ngrok-free.dev 5173
 else
     echo "Open http://localhost:5173"
     (cd backend && source .venv/bin/activate && set -a && source "$BACKEND_ENV" && set +a && uvicorn main:app --reload)
