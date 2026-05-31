@@ -189,13 +189,14 @@ export default function ItemsView({ title, userCtx, onBack, onTitleDeleted }: Pr
           <div className="w-1 h-8 rounded-full flex-shrink-0" style={{ backgroundColor: tagColor }} />
           <div className="min-w-0">
             <h1 className="text-lg font-bold text-gray-900 truncate">{title.name}</h1>
-            {title.metadata?.nameRomaji && (
-              <span className="text-xs text-gray-400">{title.metadata.nameRomaji}</span>
-            )}
-            {!title.metadata?.nameRomaji && (
+            {title.metadata?.nameRomaji ? (
+              <>
+                <span className="text-xs text-gray-400">{title.metadata.nameRomaji}</span>
+                <span className="text-xs text-gray-400 ml-1">- {title.tag.name}</span>
+              </>
+            ) : (
               <span className="text-xs text-gray-400">{title.tag.name}</span>
             )}
-            <span className="text-xs text-gray-400">{title.tag.name}</span>
           </div>
           {title.isExplicit && (
             <span className="px-1.5 py-0.5 bg-red-100 text-red-600 rounded text-xs font-medium flex-shrink-0">
@@ -225,7 +226,14 @@ export default function ItemsView({ title, userCtx, onBack, onTitleDeleted }: Pr
         <ItemCover item={languageGroups[0]?.coverItem ?? null} size="lg" fallbackUrl={title.metadata?.coverImageUrl} />
         <div className="flex flex-col justify-center gap-1 min-w-0">
           <p className="text-sm font-medium text-gray-900">{title.name}</p>
-          <p className="text-xs text-gray-400">{title.tag.name}</p>
+          {title.metadata?.nameRomaji ? (
+              <>
+                <p className="text-xs text-gray-400">{title.metadata.nameRomaji}</p>
+                <p className="text-xs text-gray-400">{title.tag.name}</p>
+              </>
+            ) : (
+                <p className="text-xs text-gray-400">{title.tag.name}</p>
+            )}
           <p className="text-xs text-gray-400 mt-1">
             {items.length} {items.length === 1 ? "item" : "items"}
           </p>
@@ -350,11 +358,14 @@ function VolumeGroupRow({ vg, tagName }: { vg: VolumeGroup; tagName: string }) {
             {vg.volumeNumber && (
               <span className="text-xs text-gray-400">Vol. {vg.volumeNumber}</span>
             )}
+            {editionLabel && (
+              <span className="text-xs text-gray-400">{editionLabel}</span>
+            )}
             {vg.author && (
               <span className="text-xs text-gray-400">{vg.author}</span>
             )}
-            {editionLabel && (
-              <span className="text-xs text-gray-400">{editionLabel}</span>
+            {vg.publisher && (
+              <span className="text-xs text-gray-400">{vg.publisher}</span>
             )}
             {
               !isExpandable && (
