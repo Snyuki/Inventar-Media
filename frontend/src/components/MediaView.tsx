@@ -27,7 +27,7 @@ export default function MediaView({ userCtx, onLogout, onBackToLogin }: Props) {
                 </span>
               )}
               {userCtx.role === "guest" && (
-                <span className="text-xs text-muted bg-muted px-2 py-1 rounded-lg">
+                <span className="text-xs text-secondary bg-fill border border-default px-2 py-1 rounded-lg">
                   Guest
                 </span>
               )}
