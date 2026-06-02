@@ -67,14 +67,14 @@ export default function BarcodeScanner({ onResult, onSkip }: Props) {
   return (
     <div className="space-y-3 w-full max-w-[37.5rem] mx-auto">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+        <div className="flex items-center gap-2 text-sm font-medium text-secondary">
           <Camera className="w-4 h-4" />
           Barcode scannen
         </div>
         <button
           type="button"
           onClick={onSkip}
-          className="text-sm text-gray-400 hover:text-gray-600 underline"
+          className="text-sm text-subtle hover:text-muted underline"
         >
           Überspringen
         </button>
@@ -107,7 +107,7 @@ export default function BarcodeScanner({ onResult, onSkip }: Props) {
       </div>
 
       {phase.status === "error" && (
-        <div className="text-sm text-red-600 bg-red-50 rounded-lg p-3">
+        <div className="text-sm text-red-600 bg-explicit-bg rounded-lg p-3">
           {phase.message}
           <button
             type="button"
@@ -120,7 +120,7 @@ export default function BarcodeScanner({ onResult, onSkip }: Props) {
       )}
 
       {phase.status === "scanning" && (
-        <p className="text-xs text-gray-400 text-center">
+        <p className="text-xs text-subtle text-center">
           Barcode in den Rahmen halten
         </p>
       )}

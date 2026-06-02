@@ -181,25 +181,25 @@ export default function ItemsView({ title, userCtx, onBack, onTitleDeleted }: Pr
       <div className="flex items-center gap-3 mb-6">
         <button
           onClick={onBack}
-          className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+          className="p-2 text-subtle hover:bg-hover hover:text-primary rounded-lg transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-1 h-8 rounded-full flex-shrink-0" style={{ backgroundColor: tagColor }} />
           <div className="min-w-0">
-            <h1 className="text-lg font-bold text-gray-900 truncate">{title.name}</h1>
+            <h1 className="text-lg font-bold text-primary truncate">{title.name}</h1>
             {title.metadata?.nameRomaji ? (
               <>
-                <span className="text-xs text-gray-400">{title.metadata.nameRomaji}</span>
-                <span className="text-xs text-gray-400 ml-1">- {title.tag.name}</span>
+                <span className="text-xs text-subtle">{title.metadata.nameRomaji}</span>
+                <span className="text-xs text-subtle ml-1">- {title.tag.name}</span>
               </>
             ) : (
-              <span className="text-xs text-gray-400">{title.tag.name}</span>
+              <span className="text-xs text-subtle">{title.tag.name}</span>
             )}
           </div>
           {title.isExplicit && (
-            <span className="px-1.5 py-0.5 bg-red-100 text-red-600 rounded text-xs font-medium flex-shrink-0">
+            <span className="bg-explicit-bg text-explicit-text px-1.5 py-0.5 rounded text-xs font-medium flex-shrink-0">
               Explicit
             </span>
           )}
@@ -222,23 +222,23 @@ export default function ItemsView({ title, userCtx, onBack, onTitleDeleted }: Pr
       </div>
 
       {/* Cover + meta */}
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 mb-6 flex gap-4">
+      <div className="bg-card rounded-lg border border-subtle shadow-sm p-4 mb-6 flex gap-4">
         <ItemCover
           item={title.metadata?.coverImageUrl ? null : (languageGroups[0]?.coverItem ?? null)}
           size="lg"
           fallbackUrl={title.metadata?.coverImageUrl ?? undefined}
         />
         <div className="flex flex-col justify-center gap-1 min-w-0">
-          <p className="text-sm font-medium text-gray-900">{title.name}</p>
+          <p className="text-sm font-medium text-primary">{title.name}</p>
           {title.metadata?.nameRomaji ? (
               <>
-                <p className="text-xs text-gray-400">{title.metadata.nameRomaji}</p>
-                <p className="text-xs text-gray-400">{title.tag.name}</p>
+                <p className="text-xs text-subtle">{title.metadata.nameRomaji}</p>
+                <p className="text-xs text-subtle">{title.tag.name}</p>
               </>
             ) : (
-                <p className="text-xs text-gray-400">{title.tag.name}</p>
+                <p className="text-xs text-subtle">{title.tag.name}</p>
             )}
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-subtle mt-1">
             {items.length} {items.length === 1 ? "item" : "items"}
           </p>
         </div>
@@ -246,7 +246,7 @@ export default function ItemsView({ title, userCtx, onBack, onTitleDeleted }: Pr
 
       {/* States */}
       {loading && (
-        <div className="text-center py-12 text-gray-400 text-sm">Loading...</div>
+        <div className="text-center py-12 text-subtle text-sm">Loading...</div>
       )}
       {error && (
         <div className="text-center py-12 text-red-500 text-sm">{error}</div>
@@ -256,7 +256,7 @@ export default function ItemsView({ title, userCtx, onBack, onTitleDeleted }: Pr
       {!loading && !error && (
         <>
           {languageGroups.length === 0 && (
-            <div className="text-center py-12 text-gray-400 text-sm">No items yet.</div>
+            <div className="text-center py-12 text-subtle text-sm">No items yet.</div>
           )}
           <Accordion.Root type="multiple" className="space-y-3">
             {languageGroups.map(lg => (
@@ -297,35 +297,35 @@ function LanguageGroupCard({
   return (
     <Accordion.Item
       value={lg.key}
-      className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden"
+      className="bg-card rounded-lg border border-subtle shadow-sm overflow-hidden"
     >
-      <Accordion.Trigger className="w-full flex items-center text-left group hover:bg-gray-50 transition-colors">
+      <Accordion.Trigger className="w-full flex items-center text-left group hover:bg-surface transition-colors">
         <div className="w-1 self-stretch flex-shrink-0" style={{ backgroundColor: tagColor }} />
         <ItemCover item={lg.coverItem} size="sm" fallbackUrl={titleFallbackCover} />
         <div className="flex-1 py-3 px-3 min-w-0">
-          <p className="font-medium text-gray-900 text-sm truncate">
+          <p className="font-medium text-primary text-sm truncate">
             {lg.volumeGroups[0]?.representative.name}
           </p>
           {lg.volumeGroups[0]?.representative.nameRomaji && (
-            <p className="text-xs text-gray-400 truncate">
+            <p className="text-xs text-subtle truncate">
               {lg.volumeGroups[0]?.representative.nameRomaji}
             </p>
           )}
-          <p className="text-xs text-gray-400 mt-0.5">
+          <p className="text-xs text-subtle mt-0.5">
             {lg.language ?? "—"}
           </p>
-          <p className="text-xs text-gray-400 mt-0.5">{tagName}</p>
+          <p className="text-xs text-subtle mt-0.5">{tagName}</p>
         </div>
         <div className="flex items-center gap-2 pr-3 flex-shrink-0">
-          <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+          <span className="px-2 py-0.5 bg-count-badge-bg text-count-badge-text rounded-full text-xs font-medium">
             ×{lg.count}
           </span>
-          <ChevronDown className="w-4 h-4 text-gray-400 transition-transform group-data-[state=open]:rotate-180" />
+          <ChevronDown className="w-4 h-4 text-subtle transition-transform group-data-[state=open]:rotate-180" />
         </div>
       </Accordion.Trigger>
 
       <Accordion.Content className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
-        <div className="border-t border-gray-100 divide-y divide-gray-100">
+        <div className="border-t border-faint divide-y divide-divider">
           {lg.volumeGroups.map(vg => (
             <VolumeGroupRow key={vg.key} vg={vg} tagName={tagName} />
           ))}
@@ -347,29 +347,29 @@ function VolumeGroupRow({ vg, tagName }: { vg: VolumeGroup; tagName: string }) {
   return (
     <div>
       <div
-        className={`flex items-center gap-3 px-4 py-3 ${isExpandable ? "cursor-pointer hover:bg-gray-50 transition-colors" : ""}`}
+        className={`flex items-center gap-3 px-4 py-3 ${isExpandable ? "cursor-pointer hover:bg-surface transition-colors" : ""}`}
         onClick={() => isExpandable && setExpanded(e => !e)}
       >
         <ItemCover item={vg.representative} size="sm" />
         <div className="flex-1 min-w-0">
-          <p className="text-sm text-gray-900 truncate">{vg.representative.name}</p>
+          <p className="text-sm text-primary truncate">{vg.representative.name}</p>
           {vg.representative.nameRomaji && (
-            <p className="text-xs text-gray-400 truncate">
+            <p className="text-xs text-subtle truncate">
               {vg.representative.nameRomaji}
             </p>
           )}
           <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
             {vg.volumeNumber && (
-              <span className="text-xs text-gray-400">Vol. {vg.volumeNumber}</span>
+              <span className="text-xs text-subtle">Vol. {vg.volumeNumber}</span>
             )}
             {editionLabel && (
-              <span className="text-xs text-gray-400">{editionLabel}</span>
+              <span className="text-xs text-subtle">{editionLabel}</span>
             )}
             {vg.author && (
-              <span className="text-xs text-gray-400">{vg.author}</span>
+              <span className="text-xs text-subtle">{vg.author}</span>
             )}
             {vg.publisher && (
-              <span className="text-xs text-gray-400">{vg.publisher}</span>
+              <span className="text-xs text-subtle">{vg.publisher}</span>
             )}
             {
               !isExpandable && (
@@ -382,11 +382,11 @@ function VolumeGroupRow({ vg, tagName }: { vg: VolumeGroup; tagName: string }) {
         <div className="flex items-center gap-2 flex-shrink-0">
           {isExpandable && (
             <>
-              <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+              <span className="px-2 py-0.5 bg-count-badge-bg text-count-badge-text rounded-full text-xs font-medium">
                 ×{vg.count}
               </span>
               <ChevronDown
-                className={`w-4 h-4 text-gray-400 transition-transform ${expanded ? "rotate-180" : ""}`}
+                className={`w-4 h-4 text-subtle transition-transform ${expanded ? "rotate-180" : ""}`}
               />
             </>
           )}
@@ -395,21 +395,21 @@ function VolumeGroupRow({ vg, tagName }: { vg: VolumeGroup; tagName: string }) {
 
       {/* Expanded edition rows */}
       {isExpandable && expanded && (
-        <div className="bg-gray-50 border-t border-gray-100 divide-y divide-gray-100">
+        <div className="bg-surface border-t border-faint divide-y divide-divider">
           {vg.editionGroups.map(eg => (
             <div key={eg.key} className="flex items-center gap-3 px-6 py-2">
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap gap-x-3 gap-y-0.5">
                   {eg.edition && (
-                    <span className="text-xs text-gray-500 font-medium">
+                    <span className="text-xs text-muted font-medium">
                       {formatEdition(eg.edition)}
                     </span>
                   )}
                   {eg.item.isbn13 && (
-                    <span className="text-xs text-gray-400">ISBN: {eg.item.isbn13}</span>
+                    <span className="text-xs text-subtle">ISBN: {eg.item.isbn13}</span>
                   )}
                   {eg.item.ean && (
-                    <span className="text-xs text-gray-400">EAN: {eg.item.ean}</span>
+                    <span className="text-xs text-subtle">EAN: {eg.item.ean}</span>
                   )}
                 </div>
               </div>
@@ -443,7 +443,7 @@ function ItemCover({
     return <img src={url} alt={item?.name ?? ""} className={`${cls} object-cover`} />;
   }
   return (
-    <div className={`${cls} bg-gray-100 flex items-center justify-center text-xl`}>
+    <div className={`${cls} bg-muted flex items-center justify-center text-xl`}>
       📚
     </div>
   );
@@ -455,10 +455,10 @@ function ItemCover({
 
 function ItemTypeDetail({ item, tagName }: { item: Item; tagName: string }) {
   if (tagName === "Anime") {
-    return item.ean ? <span className="text-xs text-gray-400">EAN: {item.ean}</span> : null;
+    return item.ean ? <span className="text-xs text-subtle">EAN: {item.ean}</span> : null;
   }
   if (tagName === "Sonstiges") {
-    return item.isbn13 ? <span className="text-xs text-gray-400">ISBN: {item.isbn13}</span> : null;
+    return item.isbn13 ? <span className="text-xs text-subtle">ISBN: {item.isbn13}</span> : null;
   }
-  return item.isbn13 ? <span className="text-xs text-gray-400">ISBN: {item.isbn13}</span> : null;
+  return item.isbn13 ? <span className="text-xs text-subtle">ISBN: {item.isbn13}</span> : null;
 }

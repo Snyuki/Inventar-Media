@@ -91,7 +91,7 @@ export default function TitlesView({ userCtx }: Props) {
 
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold text-gray-900">Titles</h1>
+        <h1 className="text-xl font-bold text-primary">Titles</h1>
         {userCtx.role === "admin" && (
           <button
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
@@ -105,13 +105,13 @@ export default function TitlesView({ userCtx }: Props) {
       {/* Search + Filter chips */}
       <div className="mb-6 space-y-3">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-subtle" />
           <input
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search titles..."
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className="w-full pl-10 pr-4 py-2 border border-default rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-input text-primary"
           />
         </div>
         <div className="flex flex-wrap gap-2">
@@ -130,7 +130,7 @@ export default function TitlesView({ userCtx }: Props) {
 
       {/* States */}
       {loading && (
-        <div className="text-center py-12 text-gray-400 text-sm">Loading...</div>
+        <div className="text-center py-12 text-subtle text-sm">Loading...</div>
       )}
       {error && (
         <div className="text-center py-12 text-red-500 text-sm">{error}</div>
@@ -140,7 +140,7 @@ export default function TitlesView({ userCtx }: Props) {
       {!loading && !error && (
         <div className="space-y-3">
           {filtered.length === 0 && (
-            <div className="text-center py-12 text-gray-400 text-sm">
+            <div className="text-center py-12 text-subtle text-sm">
               {titles.length === 0 ? "No titles yet." : "No titles match your search."}
             </div>
           )}
@@ -187,7 +187,7 @@ interface TitleCardProps {
 
 function TitleCard({ title, tagColor, userCtx, onDeleted }: TitleCardProps) {
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 flex">
+    <div className="bg-card rounded-lg shadow-sm border border-subtle flex">
 
       {/* Colored left border indicating tag */}
       <div className="w-1 flex-shrink-0" style={{ backgroundColor: tagColor }} />
@@ -200,7 +200,7 @@ function TitleCard({ title, tagColor, userCtx, onDeleted }: TitleCardProps) {
           className="w-14 h-20 object-cover flex-shrink-0"
         />
       ) : (
-        <div className="w-14 h-20 bg-gray-100 flex-shrink-0 flex items-center justify-center text-gray-300 text-xl">
+        <div className="w-14 h-20 bg-muted flex-shrink-0 flex items-center justify-center text-subtle text-xl">
           📚
         </div>
       )}
@@ -209,18 +209,18 @@ function TitleCard({ title, tagColor, userCtx, onDeleted }: TitleCardProps) {
       <div className="flex-1 p-3 min-w-0">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <h2 className="font-medium text-gray-900 text-sm leading-tight truncate">
+            <h2 className="font-medium text-primary text-sm leading-tight truncate">
               {title.name}
             </h2>
             {title.metadata?.nameRomaji && (
-              <p className="text-xs text-gray-400 truncate">
+              <p className="text-xs text-subtle truncate">
                 {title.metadata.nameRomaji}
               </p>
             )}
-            <span className="text-xs text-gray-400 mt-0.5 block">
+            <span className="text-xs text-subtle mt-0.5 block">
               {title.tag.name}
               {title.isExplicit && (
-                <span className="ml-2 px-1.5 py-0.5 bg-red-100 text-red-600 rounded text-xs font-medium">
+                <span className="bg-explicit-bg text-explicit-text ml-2 px-1.5 py-0.5 rounded text-xs font-medium">
                   Explicit
                 </span>
               )}

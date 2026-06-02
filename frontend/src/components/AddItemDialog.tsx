@@ -33,7 +33,7 @@ function TitleCoverHint({ titleCoverImageUrl, existingCoverImageUrl }: {
 }) {
   if (!titleCoverImageUrl) return null;
   if (existingCoverImageUrl) {
-    return <p className="text-xs text-gray-400 mt-1">Seriencover bereits vorhanden</p>;
+    return <p className="text-xs text-subtle mt-1">Seriencover bereits vorhanden</p>;
   }
   return <p className="text-xs text-blue-600 mt-1">Seriencover wird zum bestehenden Titel hinzugefügt</p>;
 }
@@ -41,9 +41,9 @@ function TitleCoverHint({ titleCoverImageUrl, existingCoverImageUrl }: {
 // ---------------------------------------------------------------------------
 // Shared input style
 // ---------------------------------------------------------------------------
-const inputCls = "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500";
-const labelCls     = "block text-sm text-gray-700 mb-1";
-const labelReqCls  = "block text-sm text-gray-700 mb-1 after:content-['*'] after:ml-0.5 after:text-red-500";
+const inputCls = "w-full px-3 py-2 border border-default rounded-lg text-sm bg-input text-primary placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-blue-500";
+const labelCls = "block text-sm text-secondary mb-1";
+const labelReqCls = "block text-sm text-secondary mb-1 after:content-['*'] after:ml-0.5 after:text-red-500";
 
 // ---------------------------------------------------------------------------
 // TagsGenresInput — comma-separated autocomplete input
@@ -119,12 +119,12 @@ function TagsGenresInput({ label, value, onChange, fetchSuggestions }: TagsGenre
         className={inputCls}
       />
       {showSuggestions && (
-        <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto">
+        <ul className="absolute z-10 w-full bg-card border border-subtle rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto">
           {suggestions.map(s => (
             <li
               key={s}
               onMouseDown={() => handleSelect(s)}
-              className="px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer"
+              className="px-3 py-2 text-sm hover:bg-surface cursor-pointer"
             >
               {s}
             </li>
@@ -136,13 +136,13 @@ function TagsGenresInput({ label, value, onChange, fetchSuggestions }: TagsGenre
           {value.map(v => (
             <span
               key={v}
-              className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs flex items-center gap-1"
+              className="px-2 py-0.5 bg-fill text-muted rounded-full text-xs flex items-center gap-1"
             >
               {v}
               <button
                 type="button"
                 onMouseDown={() => onChange(value.filter(t => t !== v))}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-subtle hover:text-muted"
               >
                 ×
               </button>
@@ -524,19 +524,19 @@ export default function AddItemDialog({
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/40 z-40" />
         <div className="fixed inset-0 z-50 flex items-start justify-center px-2 sm:px-4 pt-[3.75rem] pb-2">
-          <Dialog.Content className="bg-white rounded-2xl max-h-[92dvh] overflow-y-auto shadow-xl w-full max-w-[50rem]" aria-describedby={undefined}>
+          <Dialog.Content className="bg-card rounded-2xl max-h-[92dvh] overflow-y-auto shadow-xl w-full max-w-[50rem]" aria-describedby={undefined}>
 
             {/* Handle */}
             <div className="flex justify-center pt-3 pb-1">
-              <div className="w-10 h-1 bg-gray-300 rounded-full" />
+              <div className="w-10 h-1 bg-muted rounded-full" />
             </div>
 
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-              <Dialog.Title className="text-base font-semibold text-gray-900">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-subtile">
+              <Dialog.Title className="text-base font-semibold text-primary">
                 {lockedTitle ? `Add to "${lockedTitle.name}"` : "Add Item"}
               </Dialog.Title>
-              <Dialog.Close className="p-1 text-gray-400 hover:text-gray-600">
+              <Dialog.Close className="p-1 text-subtle hover:text-muted">
                 <X className="w-5 h-5" />
               </Dialog.Close>
             </div>
@@ -563,8 +563,8 @@ export default function AddItemDialog({
 
                   {/* AniList manual search — only when automatic lookup returned no AniList result */}
                   {anilistNotFound && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
-                      <p className="text-xs text-blue-700 font-medium">
+                    <div className="bg-info-bg border border-info-border rounded-lg p-3 space-y-2">
+                      <p className="text-xs text-info-text font-medium">
                         Kein AniList-Eintrag automatisch gefunden. Manuell suchen:
                       </p>
                       <div className="flex gap-2">
@@ -574,7 +574,7 @@ export default function AddItemDialog({
                           onChange={e => setAnilistQuery(e.target.value)}
                           onKeyDown={e => e.key === "Enter" && handleAnilistSearch()}
                           placeholder="Serienname..."
-                          className="flex-1 px-3 py-1.5 border border-blue-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="flex-1 px-3 py-1.5 border border-blue-300 bg-input text-primary placeholder:text-subtle rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                         <button
                           type="button"
@@ -594,8 +594,8 @@ export default function AddItemDialog({
 
                   {/* Manual ISBN search */}
                   {showIsbnSearch && (
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-2">
-                      <p className="text-xs text-gray-600 font-medium">
+                    <div className="bg-surface border border-subtle rounded-lg p-3 space-y-2">
+                      <p className="text-xs text-muted font-medium">
                         ISBN manuell eingeben:
                       </p>
                       <div className="flex gap-2">
@@ -605,7 +605,7 @@ export default function AddItemDialog({
                           onChange={e => setIsbnQuery(e.target.value)}
                           onKeyDown={e => e.key === "Enter" && handleIsbnSearch()}
                           placeholder="ISBN-10 oder ISBN-13..."
-                          className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="flex-1 px-3 py-1.5 border border-default bg-input text-primary placeholder:text-subtle rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                         <button
                           type="button"
@@ -627,9 +627,9 @@ export default function AddItemDialog({
                   {titleIsLocked ? (
                     <div>
                       <label className={labelReqCls}>Titel</label>
-                      <div className="px-3 py-2 bg-gray-100 rounded-lg text-sm text-gray-700 flex items-center justify-between">
+                      <div className="px-3 py-2 bg-fill rounded-lg text-sm text-secondary flex items-center justify-between">
                         <span>{lockedTitle!.name}</span>
-                        <span className="text-xs text-gray-400">{lockedTitle!.tag.name}</span>
+                        <span className="text-xs text-subtle">{lockedTitle!.tag.name}</span>
                       </div>
                       {/* is_explicit — read-only when locked */}
                       <div className="flex items-center gap-2 mt-2">
@@ -640,7 +640,7 @@ export default function AddItemDialog({
                           disabled
                           className="w-4 h-4 opacity-50"
                         />
-                        <label htmlFor="is_explicit_locked" className="text-sm text-gray-400">
+                        <label htmlFor="is_explicit_locked" className="text-sm text-subtle">
                           Explicit (vom Titel übernommen)
                         </label>
                         <TitleCoverHint
@@ -663,7 +663,7 @@ export default function AddItemDialog({
                               className={`px-3 py-1 rounded-full text-sm font-medium transition-colors border-0 ${
                                 selectedTagId === tag.id
                                   ? "bg-blue-600 text-white"
-                                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                  : "bg-fill text-secondary hover:bg-hover"
                               }`}
                             >
                               {tag.name}
@@ -685,15 +685,15 @@ export default function AddItemDialog({
                           className={inputCls}
                         />
                         {showTitleSuggestions && titleSuggestions.length > 0 && (
-                          <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto">
+                          <ul className="absolute z-10 w-full bg-card border border-subtle rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto">
                             {titleSuggestions.map(t => (
                               <li
                                 key={t.id}
                                 onMouseDown={() => handleSelectTitle(t)}
-                                className="px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer flex items-center justify-between"
+                                className="px-3 py-2 text-sm hover:bg-surface cursor-pointer flex items-center justify-between"
                               >
                                 <span>{t.name}</span>
-                                <span className="text-xs text-gray-400">{t.tag.name}</span>
+                                <span className="text-xs text-subtle">{t.tag.name}</span>
                               </li>
                             ))}
                           </ul>
@@ -723,7 +723,7 @@ export default function AddItemDialog({
                           onChange={e => setIsExplicit(e.target.checked)}
                           className="w-4 h-4"
                         />
-                        <label htmlFor="is_explicit" className="text-sm text-gray-700">
+                        <label htmlFor="is_explicit" className="text-sm text-secondary">
                           Explicit
                         </label>
                       </div>
@@ -796,12 +796,12 @@ export default function AddItemDialog({
                       className={inputCls}
                     />
                     {showLangSuggestions && (
-                      <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1">
+                      <ul className="absolute z-10 w-full bg-card border border-subtle rounded-lg shadow-lg mt-1">
                         {langSuggestions.map(lang => (
                           <li
                             key={lang}
                             onMouseDown={() => { setLanguage(lang); setShowLangSuggestions(false); }}
-                            className="px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer"
+                            className="px-3 py-2 text-sm hover:bg-surface cursor-pointer"
                           >
                             {lang}
                           </li>

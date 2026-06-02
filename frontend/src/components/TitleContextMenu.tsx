@@ -65,18 +65,18 @@ export default function TitleContextMenu({ title, itemCount, onDeleted }: Props)
           tabIndex={0}
           onClick={e => { e.stopPropagation(); setMenuOpen(v => !v); }}
           onKeyDown={e => e.key === "Enter" && setMenuOpen(v => !v)}
-          className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+          className="p-1.5 text-subtle hover:text-primary hover:bg-hover rounded-lg transition-colors cursor-pointer"
           title="Optionen"
         >
           <MoreVertical className="w-4 h-4" />
         </div>
 
         {menuOpen && (
-          <div className="absolute right-0 top-8 z-30 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[140px] py-1">
+          <div className="absolute right-0 top-8 z-30 bg-card border border-subtle rounded-lg shadow-lg min-w-[140px] py-1">
             <button
               type="button"
               onClick={handleDeleteClick}
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-explicit-bg transition-colors"
             >
               <Trash2 className="w-4 h-4" />
               Löschen
@@ -92,24 +92,24 @@ export default function TitleContextMenu({ title, itemCount, onDeleted }: Props)
           data-context-menu
           onClick={e => { if (e.target === e.currentTarget) setConfirmOpen(false); }}
         >
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
+          <div className="bg-card rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+              <div className="flex-shrink-0 w-10 h-10 bg-explicit-bg rounded-full flex items-center justify-center">
                 <Trash2 className="w-5 h-5 text-red-600" />
               </div>
               <div>
-                <h2 className="font-semibold text-gray-900 text-base">
+                <h2 className="font-semibold text-primary text-base">
                   Titel löschen?
                 </h2>
-                <p className="text-sm text-gray-500 mt-1">
-                  <span className="font-medium text-gray-800">„{title.name}"</span> wird
+                <p className="text-sm text-muted mt-1">
+                  <span className="font-medium text-primary">„{title.name}"</span> wird
                   unwiderruflich gelöscht — zusammen mit {itemLabel}.
                 </p>
               </div>
             </div>
 
             {error && (
-              <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
+              <p className="text-sm text-red-600 bg-explicit-bg rounded-lg px-3 py-2">
                 {error}
               </p>
             )}
@@ -119,7 +119,7 @@ export default function TitleContextMenu({ title, itemCount, onDeleted }: Props)
                 type="button"
                 onClick={() => setConfirmOpen(false)}
                 disabled={loading}
-                className="flex-1 py-2.5 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                className="flex-1 py-2.5 border border-default rounded-xl text-sm font-medium text-secondary hover:bg-surface transition-colors disabled:opacity-50"
               >
                 Abbrechen
               </button>

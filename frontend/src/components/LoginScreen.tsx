@@ -25,16 +25,16 @@ export default function LoginScreen({ onContinueAsGuest }: Props) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm text-center">
+    <div className="min-h-screen bg-surface flex items-center justify-center px-4">
+      <div className="bg-card rounded-2xl shadow-lg p-8 w-full max-w-sm text-center">
         <div className="text-4xl mb-2">📚</div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">Inventar Media</h1>
-        <p className="text-sm text-gray-500 mb-8">Medien verwalten</p>
+        <h1 className="text-2xl font-bold text-primary mb-1">Inventar Media</h1>
+        <p className="text-sm text-muted mb-8">Medien verwalten</p>
 
         <button
           onClick={handleGoogleLogin}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors mb-3 disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-default rounded-xl text-sm font-medium text-secondary hover:bg-surface transition-colors mb-3 disabled:opacity-50"
         >
           <GoogleIcon />
           {loading ? "Weiterleiten..." : "Continue with Google"}
@@ -42,14 +42,14 @@ export default function LoginScreen({ onContinueAsGuest }: Props) {
 
         <button
           onClick={onContinueAsGuest}
-          className="w-full px-4 py-3 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-100 transition-colors"
+          className="w-full px-4 py-3 rounded-xl text-sm font-medium text-muted hover:bg-hover transition-colors"
         >
           Continue as Guest
         </button>
 
         {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
 
-        <p className="mt-6 text-xs text-gray-400">
+        <p className="mt-6 text-xs text-subtle">
           Guests have read-only access.
         </p>
       </div>
