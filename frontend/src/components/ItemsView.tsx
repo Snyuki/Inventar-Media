@@ -223,7 +223,11 @@ export default function ItemsView({ title, userCtx, onBack, onTitleDeleted }: Pr
 
       {/* Cover + meta */}
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 mb-6 flex gap-4">
-        <ItemCover item={languageGroups[0]?.coverItem ?? null} size="lg" fallbackUrl={title.metadata?.coverImageUrl} />
+        <ItemCover
+          item={title.metadata?.coverImageUrl ? null : (languageGroups[0]?.coverItem ?? null)}
+          size="lg"
+          fallbackUrl={title.metadata?.coverImageUrl ?? undefined}
+        />
         <div className="flex flex-col justify-center gap-1 min-w-0">
           <p className="text-sm font-medium text-gray-900">{title.name}</p>
           {title.metadata?.nameRomaji ? (
