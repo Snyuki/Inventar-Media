@@ -19,7 +19,7 @@ Same as the existing Inventar Project:
 
 ## Stages
 
-For now only a `pro` stage. A `dev` stage will be added later.
+Two stages: `pro` (production) and `dev` (development). Each has its own Supabase project and `.env` file. The `dev` stage can be exposed via ngrok for testing on other devices (`./start.sh ngrok`). In ngrok mode, frontend and backend logs are written to `logs/` to keep the terminal readable. Logs can be tailed in the terminal with e.g. `tail -f logs/frontend.log`.
 Should be easily extendable — same `.env` pattern as the existing project (`start.sh` with `dev | ngrok | prod`).
 
 ---
@@ -66,9 +66,9 @@ Additionally, each title has an **explicit flag** (boolean):
 
 - `id`
 - `name` — free text
+- `name_romaji` — series-level romaji, auto-populated from first item insert
 - `tag` — FK to `tags` table (exactly one tag per title)
 - `is_explicit` — boolean flag
-- `external_id` — AniList ID, Google Books ID, etc.
 - `created_at`
 
 UI:
@@ -103,7 +103,6 @@ E.g.: Title: *One Piece*, Items: *Vol. 1*, *Vol. 2*, ...
 - `edition` (Auflage) — stored as TEXT, parsed as int at runtime
 - `cover_image_url`
 - `date_added`
-- `external_id`
 
 **Cover image fallback chain (frontend):**
 1. Item with lowest volume number that has a cover image
@@ -134,6 +133,15 @@ E.g.: Title: *One Piece*, Items: *Vol. 1*, *Vol. 2*, ...
 - `media_genres` + `title_media_genres` — source-agnostic genres (e.g. Comedy, Romance)
 - Both tables auto-populate from API results
 - UI: comma-separated input with autocomplete (completes the last token only)
+
+---
+
+### Item External IDs
+
+- `item_external_ids` table — stores external IDs per item per source
+- Sources: `google_books`, `openlibrary`, `anilist`, `rakuten`, `ndl`
+- One ID per source per item (unique constraint)
+- Not shown in the UI currently — stored for future use
 
 ---
 
@@ -168,12 +176,17 @@ E.g.: Title: *One Piece*, Items: *Vol. 1*, *Vol. 2*, ...
 
 | Source | Used for | Key required |
 |---|---|---|
-| Google Books | ISBN lookup (books) | Yes (free, configured in `.env`) |
+| Google Books | ISBN lookup (books) | Yes |
 | OpenLibrary | ISBN fallback (books) | No |
+| NDL (国立国会図書館) | Japanese ISBNs — publisher, volume, language | No |
+| Rakuten Books | Japanese ISBNs — cover, publisher | Yes (free) |
 | AniList GraphQL | Series metadata, cover, tags/genres | No |
 
-Language codes from Google Books (e.g. `"ja"`) are mapped to German display names via `LANGUAGE_CODE_MAP` in `constants.ts`.
+API calls are parallelized per market:
+- Japanese ISBNs (978-4): Google Books + Rakuten + NDL in parallel, then AniList
+- All others: Google Books + OpenLibrary in parallel, then AniList
 
+Name suffixes like `Vol. 1` and `(Light Novel)` are stripped automatically before AniList search. Media type suffixes also improve the suggested tag (e.g. `(Light Novel)` → pre-selects Light Novel tag).
 ---
 
 ## Search

@@ -26,6 +26,8 @@ inventar-media/
 - `ngrok` — expose via ngrok, dev database
 - `prod` — local frontend + backend, production database (confirmation required)
 
+In ngrok mode, frontend and backend logs go to `logs/frontend.log` and `logs/backend.log`. Monitor them with e.g. `tail -f logs/frontend.log` in a separate terminal.
+
 ---
 
 ## Backend
@@ -57,6 +59,34 @@ npm run dev
 ```
 
 Vite proxies `/api/*` to the FastAPI backend automatically in dev.
+
+---
+
+## Environment Variables
+
+### Backend (`backend/.env`)
+
+```env
+SUPABASE_URL=https://your-project.supabase.co
+DATABASE_URL=postgresql+asyncpg://postgres.your-project:[PASSWORD]@aws-1-eu-central-1.pooler.supabase.com:6543/postgres     # Update as needed
+GOOGLE_BOOKS_API_KEY=your-google-books-api-key
+RAKUTEN_APP_ID=your-rakuten-app-id
+RAKUTEN_ACCESS_KEY=your-rakuten-access-key
+RAKUTEN_ORIGIN=https://your-ngrok-or-render-url
+FRONTEND_URL=https://your-frontend.vercel.app
+```
+
+For dev, copy to `backend/.env.dev` and point at the dev Supabase project. `FRONTEND_URL` should be your ngrok URL in dev and your Render URL in prod.
+
+### Frontend (`frontend/.env.prod`)
+
+```env
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
+VITE_API_URL=https://your-backend.onrender.com/api
+```
+
+For dev, copy to `frontend/.env.dev`. Leave `VITE_API_URL` empty in dev so Vite proxies `/api` to localhost automatically.
 
 ---
 
@@ -94,6 +124,20 @@ There's a view for quick overviews without dealing with IDs:
 SELECT * FROM media_overview;
 SELECT * FROM media_overview WHERE tag = 'Manga';
 ```
+
+---
+
+## ngrok (remote access)
+
+To use the dev stage on other devices:
+
+1. Start with `./start.sh ngrok`
+2. Access via `https://your-ngrok-url.ngrok-free.dev`
+
+Make sure your ngrok URL is added to:
+- Rakuten allowed websites
+- Google OAuth authorized JavaScript origins
+- Supabase redirect URLs
 
 ---
 
