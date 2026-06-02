@@ -48,15 +48,40 @@ pkill -f "uvicorn main:app" 2>/dev/null
 pkill -f "vite" 2>/dev/null
 sleep 1
 
-# Start frontend in background
-(cd frontend && npm run dev -- --host) &
-
-# Start backend with the correct env file
 if [[ "$MODE" == "ngrok" ]]; then
-    (cd backend && source .venv/bin/activate && set -a && source "$BACKEND_ENV" && set +a && uvicorn main:app --reload) &
+    # In ngrok mode: redirect frontend and backend logs to files
+    # so only ngrok output appears in the terminal
+    LOG_DIR="logs"
+    mkdir -p "$LOG_DIR"
+    FRONTEND_LOG="$LOG_DIR/frontend.log"
+    BACKEND_LOG="$LOG_DIR/backend.log"
+
+    echo "📝 Logs:"
+    echo "   Frontend → $FRONTEND_LOG"
+    echo "   Backend  → $BACKEND_LOG"
+    echo "   (tail -f logs/frontend.log  or  tail -f logs/backend.log)"
+    echo ""
+
+    # Start frontend — log to file
+    (cd frontend && npm run dev -- --host > "../$FRONTEND_LOG" 2>&1) &
+
+    # Start backend — log to file
+    (cd backend && source .venv/bin/activate && set -a && source "$BACKEND_ENV" && set +a && uvicorn main:app --reload > "../$BACKEND_LOG" 2>&1) &
+
     echo "Starting ngrok tunnel..."
+    echo "App available at: https://list-coauthor-extras.ngrok-free.dev"
+    echo ""
     ngrok http --url=https://list-coauthor-extras.ngrok-free.dev 5173
+
+elif [[ "$MODE" == "dev" ]]; then
+    # In dev mode: start frontend in background, backend in foreground
+    (cd frontend && npm run dev -- --host) &
+    echo "Open http://localhost:5173"
+    (cd backend && source .venv/bin/activate && set -a && source "$BACKEND_ENV" && set +a && uvicorn main:app --reload)
+
 else
+    # prod mode: same as dev but with prod confirmation already done
+    (cd frontend && npm run dev -- --host) &
     echo "Open http://localhost:5173"
     (cd backend && source .venv/bin/activate && set -a && source "$BACKEND_ENV" && set +a && uvicorn main:app --reload)
 fi
