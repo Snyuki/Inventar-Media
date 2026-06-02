@@ -725,11 +725,7 @@ def strip_volume_suffix(name: str) -> str:
         "Berserk Volume 10"        → "Berserk"
         "Sword Art Online Bd. 2"   → "Sword Art Online"
     """
-    for pattern in constants.STRIP_ANILIST_QUERY_STRING_REGEX_PATTERNS:
-        cleaned = re.sub(pattern, '', name, flags=re.IGNORECASE).strip()
-        if cleaned and cleaned != name:
-            return cleaned
-    return name
+    return re.sub(constants.STRIP_NAME_SUFFIXES_REGEX, '', name, flags=re.IGNORECASE).strip()
 
 
 async def lookup_google_books(code: str, client: httpx.AsyncClient) -> Optional[dict]:
@@ -1022,6 +1018,7 @@ async def lookup_anilist(
     cover_image_url here is a series fallback, not a volume cover.
     """
     cleaned_search = strip_volume_suffix(search)
+    print(cleaned_search)
  
     query = """
     query ($search: String, $type: MediaType) {
@@ -1627,8 +1624,21 @@ async def lookup_barcode(
  
         # ---- Phase 2: AniList (needs merged name from phase 1) ----
         if merged.get("name"):
-            media_type = "ANIME" if suggested_tag == constants.TAG_ANIME else "MANGA"
-            al_result = await lookup_anilist(merged["name"], media_type, client)
+            name_lower = merged["name"].lower()
+            # Improve suggested_tag based on media type suffix
+            if "(light novel)" in name_lower:
+                suggested_tag = constants.TAG_LIGHT_NOVEL
+            elif "(novel)" in name_lower:
+                suggested_tag = constants.TAG_NOVEL
+            elif "(manga)" in name_lower:
+                suggested_tag = constants.TAG_MANGA
+            elif "(art book)" in name_lower:
+                suggested_tag = constants.TAG_ART_BOOK
+
+            merged["name"] = strip_volume_suffix(merged["name"])
+
+            anilist_media_type = "ANIME" if suggested_tag == constants.TAG_ANIME else "MANGA"
+            al_result = await lookup_anilist(merged["name"], anilist_media_type, client)
             if al_result:
                 merge(al_result)
             else:

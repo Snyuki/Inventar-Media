@@ -156,7 +156,6 @@ export const APPLY_STATUS_TAGS = ["Manga", "Light Novel", "Novel", "Anime"];
  */
 export function stripVolumeSuffix(name: string): string {
   return name
-    .replace(/\s+(Vol\.?|Volume|Band|Bd\.?|#|Tome|Book|Part|Episode|Box)\s*\d+.*$/i, "")
-    .replace(/\s+\d+$/, "")
+    .replace(/(\s*(Vol\.?|Volume|Band|Bd\.?|#|Tome|Book|Part|Episode|Box)\s*\d+.*|\s*\((Light Novel|Manga|Novel|Art Book|Anime|Comic|Graphic Novel)\))*\s*$/i, "")
     .trim();
 }

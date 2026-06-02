@@ -118,19 +118,8 @@ class From_Api(Enum):
     NO_API       = "none"
 
 
+
 """
-Regex patterns to strip suffixes from AniList Queries
+Regex patterns to strip suffixes
 """
-STRIP_ANILIST_QUERY_STRING_REGEX_PATTERNS = [
-    r'\s+Vol\.?\s*\d+.*$',
-    r'\s+Volume\s*\d+.*$',
-    r'\s+Band\s*\d+.*$',
-    r'\s+Bd\.?\s*\d+.*$',
-    r'\s+#\s*\d+.*$',
-    r'\s+Tome\s*\d+.*$',
-    r'\s+Book\s*\d+.*$',
-    r'\s+Part\s*\d+.*$',
-    r'\s+Episode\s*\d+.*$',
-    r'\s+Box\s*\d+.*$',
-    r'\s+\d+$',  # trailing number only as last resort
-]
+STRIP_NAME_SUFFIXES_REGEX = r'(\s*(Vol\.?|Volume|Band|Bd\.?|#|Tome|Book|Part|Episode|Box)\s*\d+.*|\s*\((Light Novel|Manga|Novel|Art Book|Anime|Comic|Graphic Novel)\))*\s*$'

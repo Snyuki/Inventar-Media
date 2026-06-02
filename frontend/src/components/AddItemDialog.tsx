@@ -364,9 +364,9 @@ export default function AddItemDialog({
     setScannerOpen(false);
     prefillFromLookup(result);
 
-  if (result.sources_used.length === 1 && result.sources_used[0] === "none") {
-    setShowIsbnSearch(true);
-  }
+    if (result.sources_used.length === 1 && result.sources_used[0] === "none") {
+      setShowIsbnSearch(true);
+    }
 
     // Resolve language code
     if (result.cover_image_url === undefined && (result as any).language) {
