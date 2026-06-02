@@ -122,4 +122,4 @@ class From_Api(Enum):
 """
 Regex patterns to strip suffixes
 """
-STRIP_NAME_SUFFIXES_REGEX = r'(\s*(Vol\.?|Volume|Band|Bd\.?|#|Tome|Book|Part|Episode|Box)\s*\d+.*|\s*\((Light Novel|Manga|Novel|Art Book|Anime|Comic|Graphic Novel)\))*\s*$'
+STRIP_NAME_SUFFIXES_REGEX = r'(\s*(Vol\.?|Volume|Band|Bd\.?|#|Tome|Book|Part|Episode|Box)\s*\d+.*|\s*\((Light Novel|Manga|Novel|Art Book|Anime|Comic|Graphic Novel)\)|\s+\d+)*\s*$'

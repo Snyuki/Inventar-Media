@@ -1635,6 +1635,17 @@ async def lookup_barcode(
             elif "(art book)" in name_lower:
                 suggested_tag = constants.TAG_ART_BOOK
 
+            if not merged.get("volume_number"):
+                vol_match = re.search(
+                    r'(?:Vol\.?|Volume|Band|Bd\.?|#)\s*(\d+)',
+                    merged["name"],
+                    flags=re.IGNORECASE
+                )
+                if not vol_match:
+                    vol_match = re.search(r'\b(\d+)\s*$', merged["name"])
+                if vol_match:
+                    merged["volume_number"] = vol_match.group(1)
+
             merged["name"] = strip_volume_suffix(merged["name"])
 
             anilist_media_type = "ANIME" if suggested_tag == constants.TAG_ANIME else "MANGA"
