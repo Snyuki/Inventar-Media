@@ -71,7 +71,7 @@ if [[ "$MODE" == "ngrok" ]]; then
     echo "Starting ngrok tunnel..."
     echo "App available at: https://list-coauthor-extras.ngrok-free.dev"
     echo ""
-    ngrok http --url=https://list-coauthor-extras.ngrok-free.dev 5173
+    ngrok http --config=ngrok.yml --url=https://list-coauthor-extras.ngrok-free.dev 5173
 
 elif [[ "$MODE" == "dev" ]]; then
     # In dev mode: start frontend in background, backend in foreground
