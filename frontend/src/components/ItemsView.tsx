@@ -6,6 +6,7 @@ import { Item, Title, UserContext } from "../types";
 import { TAG_COLORS, TAG_COLOR_FALLBACK } from "../lib/constants";
 import AddItemDialog from "./AddItemDialog";
 import TitleContextMenu from "./TitleContextMenu";
+import ItemContextMenu from "./ItemContextMenu";
 
 interface Props {
   title: Title;
@@ -266,6 +267,10 @@ export default function ItemsView({ title, userCtx, onBack, onTitleDeleted }: Pr
                 tagColor={tagColor}
                 tagName={title.tag.name}
                 titleFallbackCover={title.metadata?.coverImageUrl}
+                totalItemCount={items.length}
+                onItemDeleted={() => fetchItems(title.id).then(setItems)}
+                onTitleEmpty={onTitleDeleted}
+                userCtx={userCtx} 
               />
             ))}
           </Accordion.Root>
@@ -288,18 +293,23 @@ export default function ItemsView({ title, userCtx, onBack, onTitleDeleted }: Pr
 
 function LanguageGroupCard({
   lg, tagColor, tagName, titleFallbackCover,
+  totalItemCount, onItemDeleted, onTitleEmpty, userCtx,
 }: {
   lg: LanguageGroup;
   tagColor: string;
   tagName: string;
   titleFallbackCover: string | null | undefined;
+  totalItemCount: number;
+  onItemDeleted: () => void;
+  onTitleEmpty: () => void;
+  userCtx: UserContext;
 }) {
   return (
     <Accordion.Item
       value={lg.key}
-      className="bg-card rounded-lg border border-subtle shadow-sm overflow-hidden"
+      className="bg-card rounded-lg border border-subtle shadow-sm"
     >
-      <Accordion.Trigger className="w-full flex items-center text-left group hover:bg-surface transition-colors">
+      <Accordion.Trigger className="w-full flex items-center text-left group hover:bg-surface transition-colors first:rounded-t-lg">
         <div className="w-1 self-stretch flex-shrink-0" style={{ backgroundColor: tagColor }} />
         <ItemCover item={lg.coverItem} size="sm" fallbackUrl={titleFallbackCover} />
         <div className="flex-1 py-3 px-3 min-w-0">
@@ -324,10 +334,18 @@ function LanguageGroupCard({
         </div>
       </Accordion.Trigger>
 
-      <Accordion.Content className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
+      <Accordion.Content className="data-[state=open]:block data-[state=closed]:hidden">
         <div className="border-t border-faint divide-y divide-divider">
           {lg.volumeGroups.map(vg => (
-            <VolumeGroupRow key={vg.key} vg={vg} tagName={tagName} />
+            <VolumeGroupRow
+              key={vg.key}
+              vg={vg}
+              tagName={tagName}
+              totalItemCount={totalItemCount}
+              onItemDeleted={onItemDeleted}
+              onTitleEmpty={onTitleEmpty}
+              userCtx={userCtx}
+            />
           ))}
         </div>
       </Accordion.Content>
@@ -339,11 +357,20 @@ function LanguageGroupCard({
 // VolumeGroupRow — second level, optionally expandable
 // ---------------------------------------------------------------------------
 
-function VolumeGroupRow({ vg, tagName }: { vg: VolumeGroup; tagName: string }) {
+function VolumeGroupRow({
+  vg, tagName, totalItemCount, onItemDeleted, onTitleEmpty, userCtx,
+}: {
+  vg: VolumeGroup;
+  tagName: string;
+  totalItemCount: number;
+  onItemDeleted: () => void;
+  onTitleEmpty: () => void;
+  userCtx: UserContext;
+}) {
   const [expanded, setExpanded] = useState(false);
   const isExpandable = vg.count > 1;
   const editionLabel = formatEdition(vg.lowestEdition);
-
+ 
   return (
     <div>
       <div
@@ -390,14 +417,23 @@ function VolumeGroupRow({ vg, tagName }: { vg: VolumeGroup; tagName: string }) {
               />
             </>
           )}
+          {/* Context menu — only on non-expandable rows */}
+          {!isExpandable && userCtx.role === "admin" && (
+            <ItemContextMenu
+              item={vg.representative}
+              remainingItemCount={totalItemCount}
+              onDeleted={onItemDeleted}
+              onTitleEmpty={onTitleEmpty}
+            />
+          )}
         </div>
       </div>
-
+ 
       {/* Expanded edition rows */}
       {isExpandable && expanded && (
         <div className="bg-surface border-t border-faint divide-y divide-divider">
           {vg.editionGroups.map(eg => (
-            <div key={eg.key} className="flex items-center gap-3 px-6 py-2">
+            <div key={eg.key} className="flex items-center gap-3 px-6 py-1">
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap gap-x-3 gap-y-0.5">
                   {eg.edition && (
@@ -413,6 +449,15 @@ function VolumeGroupRow({ vg, tagName }: { vg: VolumeGroup; tagName: string }) {
                   )}
                 </div>
               </div>
+              {/* Context menu on each edition row */}
+              {userCtx.role === "admin" && (
+                <ItemContextMenu
+                  item={eg.item}
+                  remainingItemCount={totalItemCount}
+                  onDeleted={onItemDeleted}
+                  onTitleEmpty={onTitleEmpty}
+                />
+              )}
             </div>
           ))}
         </div>

@@ -126,7 +126,7 @@ export async function deleteTitle(titleId: string): Promise<void> {
   });
   await handleResponse(res);
 }
- 
+
 
 // ---------------------------------------------------------------------------
 // Items
@@ -173,7 +173,7 @@ export async function createItem(
     language?: string | null;
     edition?: string | null;
     cover_image_url?: string | null;
-    external_ids?: Array<{ source: string; external_id: string }>; // NEW
+    external_ids?: Array<{ source: string; external_id: string }>;
     isbn_10?: string | null;
     isbn_13?: string | null;
     publisher?: string | null;
@@ -190,6 +190,15 @@ export async function createItem(
   });
   await handleResponse(res);
 }
+
+export async function deleteItem(itemId: string): Promise<void> {
+  const res = await fetch(`${BASE_URL}/items/${itemId}`, {
+    method: "DELETE",
+    headers: await headers(true),
+  });
+  await handleResponse(res);
+}
+
 
 // ---------------------------------------------------------------------------
 // Language

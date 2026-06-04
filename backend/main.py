@@ -1509,11 +1509,22 @@ async def delete_item(
     )
     if not item_row:
         raise HTTPException(status_code=404, detail="Item not found")
- 
+
+    title_id = str(item_row["title_id"])
+
+    # Delete the item
     await database.execute(
         items_table.delete().where(items_table.c.id == item_id)
     )
-    return None
+
+    # Check if title has any remaining items — delete if empty
+    remaining = await database.fetch_one(
+        items_table.select().where(items_table.c.title_id == title_id)
+    )
+    if remaining is None:
+        await database.execute(
+            titles_table.delete().where(titles_table.c.id == title_id)
+        )
  
  
 @app.get("/api/languages")
