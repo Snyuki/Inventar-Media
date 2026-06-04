@@ -927,6 +927,27 @@ async def lookup_ndl(code: str, client: httpx.AsyncClient) -> Optional[dict]:
             except Exception:
                 pass
  
+        # Extract NDC classification
+        ndc = None
+        for subject in bib.findall("dcterms:subject", ns):
+            resource = subject.get(f"{{{ns['rdf']}}}resource", "")
+            if "ndc9/" in resource:
+                ndc = resource.split("ndc9/")[-1]
+                break
+
+        # Extract genre value
+        genre_val = find_text("dcndl:genre/rdf:Description/rdf:value") or ""
+
+        # Extract series title for additional signal
+        series = find_text("dcndl:seriesTitle/rdf:Description/rdf:value") or ""
+
+        # Determine suggested tag from NDL signals
+        ndl_suggested_tag = None
+        if genre_val == "漫画" or ndc == "726.1":
+            ndl_suggested_tag = constants.TAG_MANGA
+        elif ndc == "913.6" or "文庫" in series:
+            ndl_suggested_tag = constants.TAG_LIGHT_NOVEL
+
         return {
             "name":            name,
             "name_english":    name_english,
@@ -935,6 +956,7 @@ async def lookup_ndl(code: str, client: httpx.AsyncClient) -> Optional[dict]:
             "publish_date":    publish_date,
             "language":        language,
             "cover_image_url": ndl_cover,
+            "suggested_tag_override": ndl_suggested_tag,
             "from_api":        constants.From_Api.NDL.value,
         }
  
@@ -1560,6 +1582,7 @@ async def lookup_barcode(
         "is_adult": False, "tags": [], "genres": [],
         "sources_used": [],
         "anilist_found": True,
+        "suggested_tag_override": None,
     }
  
     if code_type == constants.TYPE_ISBN10:
@@ -1580,6 +1603,9 @@ async def lookup_barcode(
                 if value and value != constants.From_Api.NO_API.value:
                     if value not in merged["sources_used"]:
                         merged["sources_used"].append(value)
+            elif key == "suggested_tag_override":
+                if value and merged.get("suggested_tag_override") is None:
+                    merged["suggested_tag_override"] = value
             elif key == "title_cover_image_url":
                 if merged.get("title_cover_image_url") is None and value:
                     merged["title_cover_image_url"] = value
@@ -1621,6 +1647,9 @@ async def lookup_barcode(
                 continue
             if result:
                 merge(result)
+        
+        if merged.get("suggested_tag_override"):
+            suggested_tag = merged["suggested_tag_override"]
  
         # ---- Phase 2: AniList (needs merged name from phase 1) ----
         if merged.get("name"):
@@ -1684,7 +1713,7 @@ async def lookup_barcode(
         merged["sources_used"] = [constants.From_Api.NO_API.value]
  
     response_merged = {k: v for k, v in merged.items()
-                       if k not in ("google_books_id", "openlibrary_id", "rakuten_item_code")}
+                       if k not in ("google_books_id", "openlibrary_id", "rakuten_item_code", "suggested_tag_override")}
  
     return LookupResult(
         code=code,

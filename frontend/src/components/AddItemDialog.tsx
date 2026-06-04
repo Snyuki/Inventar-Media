@@ -359,6 +359,18 @@ export default function AddItemDialog({
     }
   };
 
+  // ---- Manual Tag select handler -------------------------------------------
+  const handleTagChange = (tagId: string) => {
+    setSelectedTagId(tagId);
+    if (selectedTitle) {
+      const newTag = tags.find(t => t.id === tagId);
+      if (newTag && newTag.name !== selectedTitle.tag.name) {
+        // titleQuery stays filled — user keeps the name, just creates a new title
+        setSelectedTitle(null);
+      }
+    }
+  };
+
   // ---- Scanner result handler ----------------------------------------------
   const handleScanResult = (result: LookupResult) => {
     setScannerOpen(false);
@@ -659,7 +671,7 @@ export default function AddItemDialog({
                             <button
                               key={tag.id}
                               type="button"
-                              onClick={() => setSelectedTagId(tag.id)}
+                              onClick={() => handleTagChange(tag.id)}
                               className={`px-3 py-1 rounded-full text-sm font-medium transition-colors border-0 ${
                                 selectedTagId === tag.id
                                   ? "bg-blue-600 text-white"
