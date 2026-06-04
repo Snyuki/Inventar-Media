@@ -272,6 +272,12 @@ export default function AddItemDialog({
     }
   }, [open, lockedTitle]);
 
+  // ---- Current titles ------------------------------------------------------
+  const titlesRef = useRef<Title[]>([]);
+    useEffect(() => {
+      titlesRef.current = titles;
+    }, [titles]);
+
   // ---- Prefill from lookup result ------------------------------------------
   const prefillFromLookup = (result: Partial<LookupResult>) => {
     if (result.name) {
@@ -282,7 +288,7 @@ export default function AddItemDialog({
       }
 
       // Check if an existing title matches and auto-select it
-      const existingTitle = titles.find(
+      const existingTitle = titlesRef.current.find(
         t => t.name.toLowerCase() === strippedTitle?.toLowerCase()
       );
       if (existingTitle) {
