@@ -1,4 +1,5 @@
-import { Item, LookupResult, Title } from "../types";
+import { Item, LookupResult, PreferredInput, Title } from "../types";
+import { supabase } from "./supabase";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "/api";
 let _cachedToken: string | null = null;
@@ -45,6 +46,17 @@ export async function checkAuthRole(token?: string): Promise<{ role: string; ema
 
 export function setAuthToken(token: string | null) {
   _cachedToken = token;
+}
+
+// ---------------------------------------------------------------------------
+// Settings
+// ---------------------------------------------------------------------------
+
+export async function savePreferredInput(value: PreferredInput): Promise<void> {
+  const { error } = await supabase.auth.updateUser({
+    data: { preferred_input: value },
+  });
+  if (error) throw new Error(error.message);
 }
 
 // ---------------------------------------------------------------------------

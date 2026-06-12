@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Search, Plus } from "lucide-react";
 import { fetchTags, fetchTitles } from "../lib/api";
-import { Tag, Title, UserContext } from "../types";
+import { PreferredInput, Tag, Title, UserContext } from "../types";
 import { TAG_COLORS, TAG_COLOR_FALLBACK } from "../lib/constants";
 import ItemsView from "./ItemsView";
 import AddItemDialog from "./AddItemDialog";
@@ -9,9 +9,10 @@ import TitleContextMenu from "./TitleContextMenu";
 
 interface Props {
   userCtx: UserContext;
+  preferredInput: PreferredInput;
 }
 
-export default function TitlesView({ userCtx }: Props) {
+export default function TitlesView({ userCtx, preferredInput }: Props) {
   const [titles, setTitles]       = useState<Title[]>([]);
   const [tags, setTags]           = useState<Tag[]>([]);
   const [search, setSearch]       = useState("");
@@ -81,6 +82,7 @@ export default function TitlesView({ userCtx }: Props) {
           setSelectedTitle(null);
           fetchTitles().then(setTitles);
         }}
+        preferredInput={preferredInput}
       />
     );
   }
@@ -169,6 +171,7 @@ export default function TitlesView({ userCtx }: Props) {
         onClose={() => setAddOpen(false)}
         onSuccess={() => { setAddOpen(false); /* reload titles */ fetchTitles().then(setTitles); }}
         tags={tags}
+        preferredInput={preferredInput}
       />
     </div>
   );

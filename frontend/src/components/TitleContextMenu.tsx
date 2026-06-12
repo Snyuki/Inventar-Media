@@ -103,7 +103,7 @@ export default function TitleContextMenu({ title, itemCount, onDeleted }: Props)
                 </h2>
                 <p className="text-sm text-muted mt-1">
                   <span className="font-medium text-primary">„{title.name}"</span> wird
-                  unwiderruflich gelöscht — zusammen mit {itemLabel}.
+                  unwiderruflich gelöscht - zusammen mit {itemLabel}.
                 </p>
               </div>
             </div>

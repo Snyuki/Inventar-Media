@@ -108,7 +108,7 @@ export default function ItemContextMenu({
                   unwiderruflich gelöscht.
                   {remainingItemCount <= 1 && (
                     <span className="block mt-1 text-red-600 font-medium">
-                      Dies ist das letzte Item — der Titel wird ebenfalls gelöscht.
+                      Dies ist das letzte Item - der Titel wird ebenfalls gelöscht.
                     </span>
                   )}
                 </p>

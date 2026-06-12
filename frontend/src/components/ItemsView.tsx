@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { ArrowLeft, ChevronDown, Plus } from "lucide-react";
 import * as Accordion from "@radix-ui/react-accordion";
 import { fetchItems } from "../lib/api";
-import { Item, Title, UserContext } from "../types";
+import { Item, PreferredInput, Title, UserContext } from "../types";
 import { TAG_COLORS, TAG_COLOR_FALLBACK } from "../lib/constants";
 import AddItemDialog from "./AddItemDialog";
 import TitleContextMenu from "./TitleContextMenu";
@@ -13,6 +13,7 @@ interface Props {
   userCtx: UserContext;
   onBack: () => void;
   onTitleDeleted: () => void;
+  preferredInput: PreferredInput;
 }
 
 // ---------------------------------------------------------------------------
@@ -155,7 +156,7 @@ function buildGroups(items: Item[]): LanguageGroup[] {
 // Main component
 // ---------------------------------------------------------------------------
 
-export default function ItemsView({ title, userCtx, onBack, onTitleDeleted }: Props) {
+export default function ItemsView({ title, userCtx, onBack, onTitleDeleted, preferredInput }: Props) {
   const [items, setItems]     = useState<Item[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState<string | null>(null);
@@ -282,13 +283,14 @@ export default function ItemsView({ title, userCtx, onBack, onTitleDeleted }: Pr
         onSuccess={() => { setAddOpen(false); fetchItems(title.id).then(setItems); }}
         tags={[title.tag]}  // only the title's own tag
         lockedTitle={title}
+        preferredInput={preferredInput}
       />
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// LanguageGroupCard — first level accordion
+// LanguageGroupCard - first level accordion
 // ---------------------------------------------------------------------------
 
 function LanguageGroupCard({
@@ -322,7 +324,7 @@ function LanguageGroupCard({
             </p>
           )}
           <p className="text-xs text-subtle mt-0.5">
-            {lg.language ?? "—"}
+            {lg.language ?? "-"}
           </p>
           <p className="text-xs text-subtle mt-0.5">{tagName}</p>
         </div>
@@ -354,7 +356,7 @@ function LanguageGroupCard({
 }
 
 // ---------------------------------------------------------------------------
-// VolumeGroupRow — second level, optionally expandable
+// VolumeGroupRow - second level, optionally expandable
 // ---------------------------------------------------------------------------
 
 function VolumeGroupRow({
@@ -417,7 +419,7 @@ function VolumeGroupRow({
               />
             </>
           )}
-          {/* Context menu — only on non-expandable rows */}
+          {/* Context menu - only on non-expandable rows */}
           {!isExpandable && userCtx.role === "admin" && (
             <ItemContextMenu
               item={vg.representative}

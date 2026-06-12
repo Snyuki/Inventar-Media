@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Session } from "@supabase/supabase-js";
 import { supabase } from "./lib/supabase";
-import { checkAuthRole } from "./lib/api";
-import { UserContext } from "./types";
+import { checkAuthRole, savePreferredInput } from "./lib/api";
+import { PreferredInput, UserContext } from "./types";
 import LoginScreen from "./components/LoginScreen";
 import MediaView from "./components/MediaView";
 import { setAuthToken } from "./lib/api";
@@ -11,6 +11,7 @@ export default function App() {
   const [session, setSession]           = useState<Session | null>(null);
   const [userCtx, setUserCtx]           = useState<UserContext | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [preferredInput, setPreferredInput] = useState<PreferredInput>("barcode_scanner");
 
   // ---- Auth -----------------------------------------------------------
 useEffect(() => {
@@ -25,6 +26,7 @@ useEffect(() => {
           setUserCtx({ role: "guest", email: session.user.email ?? null });
         }
         setSession(session);
+        applyUserPrefs(session);
       } else {
         setSession(null);
         setUserCtx(null);
@@ -57,6 +59,23 @@ useEffect(() => {
     setCheckingAuth(false);
   };
 
+  // ---- Setting handlers -----------------------------------------------
+  const handlePreferredInputChange = async (value: PreferredInput) => {
+    setPreferredInput(value);
+    try {
+      await savePreferredInput(value);
+    } catch (e) {
+      console.error("Failed to save preference:", e);
+    }
+  };
+  
+  const applyUserPrefs = (session: Session) => {
+    const savedPref = session.user.user_metadata?.preferred_input;
+    if (savedPref === "barcode_scanner" || savedPref === "manual_input") {
+      setPreferredInput(savedPref);
+    }
+  };
+
   // ---- Guards ---------------------------------------------------------
   if (checkingAuth) return null;
 
@@ -73,6 +92,8 @@ useEffect(() => {
       userCtx={userCtx ?? { role: "guest", email: null }}
       onLogout={session ? handleLogout : undefined}
       onBackToLogin={handleReturnToLoginScreen}
+      preferredInput={preferredInput}
+      onPreferredInputChange={setPreferredInput}
     />
   );
 }

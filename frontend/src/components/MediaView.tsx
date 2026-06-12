@@ -1,16 +1,35 @@
-import { LogOut, Moon, Sun } from "lucide-react";
-import { UserContext } from "../types";
+import { LogOut, Moon, Settings, Sun } from "lucide-react";
+import { PreferredInput, UserContext } from "../types";
 import TitlesView from "./TitlesView";
 import { useDarkMode } from "../hooks/useDarkMode";
+import { useEffect, useRef, useState } from "react";
+import SettingsModal from "./SettingsModal";
 
 interface Props {
   userCtx: UserContext;
   onLogout?: () => void;
   onBackToLogin?: () => void;
+  preferredInput: PreferredInput;
+  onPreferredInputChange: (value: PreferredInput) => void;
 }
 
-export default function MediaView({ userCtx, onLogout, onBackToLogin }: Props) {
+export default function MediaView({ userCtx, onLogout, onBackToLogin, preferredInput, onPreferredInputChange }: Props) {
   const { isDark, toggle } = useDarkMode();
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!dropdownOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [dropdownOpen]);
 
   return (
     <div className="min-h-screen flex flex-col bg-surface">
@@ -41,6 +60,29 @@ export default function MediaView({ userCtx, onLogout, onBackToLogin }: Props) {
                 {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
               </button>
 
+              {/* Settings dropdown */}
+              <div ref={dropdownRef} className="relative">
+                <button
+                  onClick={() => setDropdownOpen(v => !v)}
+                  className="p-2 text-subtle hover:bg-hover hover:text-primary rounded-lg transition-colors"
+                  title="Einstellungen"
+                >
+                  <Settings className="w-5 h-5" />
+                </button>
+                {dropdownOpen && (
+                  <div className="absolute right-0 top-10 z-30 bg-card border border-subtle rounded-lg shadow-lg min-w-[160px] py-1">
+                    <button
+                      type="button"
+                      onClick={() => { setDropdownOpen(false); setSettingsOpen(true); }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-primary hover:bg-hover transition-colors"
+                    >
+                      <Settings className="w-4 h-4" />
+                      Einstellungen
+                    </button>
+                  </div>
+                )}
+              </div>
+
               {onLogout && (
                 <button
                   onClick={onLogout}
@@ -66,7 +108,10 @@ export default function MediaView({ userCtx, onLogout, onBackToLogin }: Props) {
 
       {/* Main */}
       <div className="flex-1 flex justify-center p-4 sm:p-8">
-        <TitlesView userCtx={userCtx} />
+        <TitlesView
+          userCtx={userCtx}
+          preferredInput={preferredInput}
+        />
       </div>
 
       {/* Footer */}
@@ -75,6 +120,14 @@ export default function MediaView({ userCtx, onLogout, onBackToLogin }: Props) {
         <span className="mx-2">·</span>
         <span>v{__APP_VERSION__}</span>
       </footer>
+
+      <SettingsModal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        email={userCtx.email}
+        preferredInput={preferredInput}
+        onPreferredInputChange={onPreferredInputChange}
+      />
     </div>
   );
 }
