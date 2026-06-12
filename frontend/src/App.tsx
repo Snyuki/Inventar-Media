@@ -93,7 +93,7 @@ useEffect(() => {
       onLogout={session ? handleLogout : undefined}
       onBackToLogin={handleReturnToLoginScreen}
       preferredInput={preferredInput}
-      onPreferredInputChange={setPreferredInput}
+      onPreferredInputChange={handlePreferredInputChange}
     />
   );
 }

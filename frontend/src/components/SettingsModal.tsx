@@ -1,7 +1,6 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { X, ScanBarcode, Keyboard } from "lucide-react";
 import { PreferredInput } from "../types";
-import { savePreferredInput } from "../lib/api";
 
 interface Props {
   open: boolean;
@@ -18,15 +17,6 @@ export default function SettingsModal({
   preferredInput,
   onPreferredInputChange,
 }: Props) {
-
-  const handleInputChange = async (value: PreferredInput) => {
-    onPreferredInputChange(value);
-    try {
-      await savePreferredInput(value);
-    } catch {
-      // Preference still applied locally
-    }
-  };
 
   return (
     <Dialog.Root open={open} onOpenChange={v => !v && onClose()}>
@@ -67,7 +57,7 @@ export default function SettingsModal({
                   <div className="flex gap-3">
                     <button
                       type="button"
-                      onClick={() => handleInputChange("barcode_scanner")}
+                      onClick={() => onPreferredInputChange("barcode_scanner")}
                       className={`flex-1 flex flex-col items-center gap-2 px-4 py-3 rounded-xl border-2 transition-colors ${
                         preferredInput === "barcode_scanner"
                           ? "border-blue-600 bg-count-badge-bg text-count-badge-text"
@@ -79,7 +69,7 @@ export default function SettingsModal({
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleInputChange("manual_input")}
+                      onClick={() => onPreferredInputChange("manual_input")}
                       className={`flex-1 flex flex-col items-center gap-2 px-4 py-3 rounded-xl border-2 transition-colors ${
                         preferredInput === "manual_input"
                           ? "border-blue-600 bg-count-badge-bg text-count-badge-text"
