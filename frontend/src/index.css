@@ -64,3 +64,9 @@
   --color-info-border: #1d4ed870;
   --color-info-text:   #60a5fa;
 }
+
+
+/* Combat apples auto-zoom */
+input, select, textarea {
+  font-size: 16px;
+}
